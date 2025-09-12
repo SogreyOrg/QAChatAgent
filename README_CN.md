@@ -27,14 +27,11 @@
 
 ```bash
 # 克隆仓库
-git clone <repository-url>
-cd 多模态PDF文档解析流程
+git clone https://github.com/Sogrey/RAG-PDF2markdown.git
+cd RAG-PDF2markdown
 
 # 安装核心依赖
 pip install -r requirements.txt
-
-# 开发环境（包括测试和格式化工具）
-pip install -r requirements-dev.txt
 ```
 
 ### 方法二：使用conda
@@ -55,6 +52,20 @@ pip install -e .
 
 # 或包含开发依赖
 pip install -e ".[dev]"
+```
+
+### 方法四：使用 Python 3.11.9 与 venv（已测试）
+
+```powershell
+# 使用 Python 3.11.9 创建虚拟环境
+python -m venv venv-py311
+
+# 激活环境
+.\venv-py311\Scripts\activate  # Windows
+# source venv-py311/bin/activate  # Linux/macOS
+
+# 安装依赖
+pip install -r requirements.txt
 ```
 
 ## 🔧 Tesseract OCR配置

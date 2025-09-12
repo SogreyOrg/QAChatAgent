@@ -1,42 +1,33 @@
-# PDF Processing Dependencies for 多模态RAG系统开发实战
-
-# Core LangChain components
+# Core dependencies
 langchain-core>=0.1.0
 langchain-community>=0.0.1
 langchain-unstructured>=0.1.0
-
-# PDF processing libraries
 unstructured>=0.10.0
 unstructured[local-inference]>=0.10.0
+
+# PDF processing
+pymupdf>=1.26.4
 pypdf>=3.0.0
+reportlab>=3.6.0
 
-# OCR dependencies (required based on project memory)
-# Tesseract OCR is required for text extraction when using OCR-based strategies
-pytesseract>=0.3.10
-
-# PaddleOCR support (as used in the notebook)
+# OCR & Image processing
 paddlepaddle>=2.5.0
 paddleocr>=2.7.0
-
-# Image processing libraries
+pytesseract>=0.3.10
 pillow>=9.0.0
 opencv-python>=4.8.0
-numpy>=1.24.0
 
 # Data processing
+html2text>=2025.4.15
+matplotlib>=3.7.0
+numpy>=1.24.0
 pandas>=1.5.0
 
-# File handling and utilities
-reportlab>=3.6.0  # For creating test PDFs
-pathlib2>=2.3.0
-
-# Optional: Advanced ML dependencies
-# torch>=2.0.0
-# transformers>=4.30.0
-
-# Development and testing
+# Development
 jupyter>=1.0.0
 notebook>=6.5.0
-
-# Environment management
 python-dotenv>=1.0.0
+
+# System requirements (must be installed separately):
+# - poppler (PDF rendering)
+# - tesseract (OCR engine)

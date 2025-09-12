@@ -70,10 +70,9 @@ advanced = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/multimodal-rag/pdf-processing"
-Documentation = "https://multimodal-rag-pdf-processing.readthedocs.io/"
-Repository = "https://github.com/multimodal-rag/pdf-processing.git"
-Issues = "https://github.com/multimodal-rag/pdf-processing/issues"
+Homepage = "https://github.com/Sogrey/RAG-PDF2markdown"
+Repository = "https://github.com/Sogrey/RAG-PDF2markdown.git"
+Issues = "https://github.com/Sogrey/RAG-PDF2markdown/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
