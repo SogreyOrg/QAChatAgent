@@ -43,6 +43,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv-py311/
 
 # IDE specific files
 .idea/
