@@ -1,0 +1,94 @@
+:root {
+  /* 主色调 - 深蓝色调带有紫色调 */
+  --primary-color: #3a1f5d;
+  --primary-light: #6a3cb5;
+  --primary-dark: #1e0f33;
+  
+  /* 强调色 - 科技蓝 */
+  --accent-color: #00b8ff;
+  --accent-light: #64dcff;
+  --accent-dark: #0077cc;
+  
+  /* 背景色 */
+  --bg-dark: #121212;
+  --bg-medium: #1e1e2f;
+  --bg-light: #2d2d44;
+  
+  /* 文本色 */
+  --text-primary: #e0e0ff;
+  --text-secondary: #a0a0c0;
+  --text-disabled: #6c6c8c;
+  
+  /* 边框和分隔线 */
+  --border-color: #3a3a5c;
+  --divider-color: #2a2a40;
+  
+  /* 状态颜色 */
+  --success-color: #00cc99;
+  --warning-color: #ffcc00;
+  --error-color: #ff3366;
+  --info-color: #00b8ff;
+  
+  /* 阴影效果 */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.7);
+  
+  /* 发光效果 */
+  --glow-primary: 0 0 15px rgba(106, 60, 181, 0.5);
+  --glow-accent: 0 0 15px rgba(0, 184, 255, 0.5);
+}
+
+/* 全局动画效果 */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 5px var(--accent-color);
+  }
+  50% {
+    box-shadow: 0 0 15px var(--accent-color);
+  }
+  100% {
+    box-shadow: 0 0 5px var(--accent-color);
+  }
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* 科技感网格背景 */
+.tech-grid-bg {
+  background-color: var(--bg-dark);
+  background-image: 
+    linear-gradient(rgba(106, 60, 181, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(106, 60, 181, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center center;
+}
+
+/* 科技感渐变背景 */
+.tech-gradient-bg {
+  background: linear-gradient(135deg, var(--bg-dark), var(--bg-medium), var(--primary-dark));
+  background-size: 400% 400%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+/* 发光边框效果 */
+.glow-border {
+  border: 1px solid var(--accent-color);
+  box-shadow: var(--glow-accent);
+}
+
+/* 霓虹文本效果 */
+.neon-text {
+  color: var(--accent-color);
+  text-shadow: 0 0 5px var(--accent-color), 0 0 10px var(--accent-color);
+}

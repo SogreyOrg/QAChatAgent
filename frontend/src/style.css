@@ -1,0 +1,78 @@
+@import './assets/theme.css';
+
+:root {
+  font-family: 'Rajdhani', 'Orbitron', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  color: var(--text-primary);
+  background-color: var(--bg-dark);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: var(--bg-dark);
+  background-image: 
+    radial-gradient(circle at 25% 25%, rgba(106, 60, 181, 0.05) 0%, transparent 50%),
+    radial-gradient(circle at 75% 75%, rgba(0, 184, 255, 0.05) 0%, transparent 50%);
+  transition: all 0.3s ease;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#app {
+  font-family: 'Rajdhani', 'Orbitron', Avenir, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color: var(--text-primary);
+}
+
+.el-scrollbar__view {
+  height: 100%;
+}
+
+.el-menu {
+  border-right: none;
+}
+
+.el-menu-item {
+  transition: all 0.3s;
+}
+
+.el-menu-item:hover {
+  background-color: #f5f7fa;
+}
+
+.el-table {
+  margin-top: 10px;
+}
+
+.el-table .cell {
+  padding: 0 8px;
+}
+
+.el-dialog__body {
+  padding: 20px;
+}
+
+.el-message-box {
+  max-width: 400px;
+}
+
+.el-button + .el-button {
+  margin-left: 8px;
+}
+
+.el-textarea__inner {
+  resize: none;
+}

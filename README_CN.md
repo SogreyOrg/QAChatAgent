@@ -27,8 +27,8 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/Sogrey/RAG-PDF2markdown.git
-cd RAG-PDF2markdown
+git clone git@github.com:SogreyOrg/QAChatAgent.git
+cd QAChatAgent
 
 # 安装核心依赖
 pip install -r requirements.txt

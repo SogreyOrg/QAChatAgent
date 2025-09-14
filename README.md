@@ -8,12 +8,21 @@ A comprehensive PDF document parsing and element extraction system for multimoda
 
 ## 🚀 Features
 
+### Backend Features
 - **High-quality PDF Processing**: Extract text, tables, and images from PDF documents
 - **Multimodal Support**: Handle both text-based and image-intensive PDFs
 - **OCR Integration**: Support for Tesseract and PaddleOCR engines
 - **Language Support**: Optimized for Chinese (Simplified) and English text recognition
 - **Table Structure Detection**: Automatic table parsing and structure inference
 - **LangChain Integration**: Compatible with LangChain document loaders for RAG workflows
+
+### Frontend Features
+- **Modern UI**: Vue 3 + Element Plus based interface
+- **Knowledge Base Management**: Create, edit and delete knowledge bases
+- **Document Management**: Upload and organize documents
+- **Responsive Design**: Works on desktop and tablet devices
+- **Tech-inspired Theme**: Custom sci-fi inspired UI theme
+- **Local Storage**: Persists data in browser local storage
 
 ## 📋 System Requirements
 
@@ -23,12 +32,15 @@ A comprehensive PDF document parsing and element extraction system for multimoda
 
 ## 🛠️ Installation
 
-### Method 1: Using pip (Recommended)
+### Backend Installation
+Follow the methods below to install backend dependencies.
+
+#### Method 1: Using pip (Recommended)
 
 ```bash
 # Clone repository
-git clone https://github.com/Sogrey/RAG-PDF2markdown.git
-cd RAG-PDF2markdown
+git clone git@github.com:SogreyOrg/QAChatAgent.git
+cd QAChatAgent
 
 # Install core dependencies
 pip install -r requirements.txt
@@ -108,7 +120,25 @@ For detailed Chinese installation guide see: [`install_tesseract_windows.md`](in
 
 ## 📖 Usage
 
-### Basic PDF Processing
+### Frontend Development
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Access the application at: http://localhost:5173
+
+#### Key Features:
+- Knowledge base creation and management
+- Document upload and organization
+- Responsive layout for different screen sizes
+- Dark/light theme support
+
+### Backend Usage
+
+#### Basic PDF Processing
 
 ```python
 from langchain_unstructured import UnstructuredLoader
