@@ -1,3 +1,5 @@
+
+
 <template>
   <div class="knowledge-view">
     <div class="knowledge-header">
@@ -154,10 +156,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import axios from 'axios'
+import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, UploadFilled, Delete, Plus } from '@element-plus/icons-vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
-import { ElMessage, ElMessageBox } from 'element-plus'
 
+const uploadProgress = ref(0)
 const knowledgeStore = useKnowledgeStore()
 const createDialogVisible = ref(false)
 const uploadDialogVisible = ref(false)
@@ -207,21 +211,46 @@ const formatTime = (timestamp) => {
   return new Date(timestamp).toLocaleString()
 }
 
-const uploadDocument = () => {
+const uploadDocument = async () => {
   if (!selectedFile.value) return
   
-  const document = {
-    name: selectedFile.value.name,
-    size: formatFileSize(selectedFile.value.size)
+  try {
+    const formData = new FormData()
+    formData.append('file', selectedFile.value)
+    
+    const response = await axios.post(
+      'http://localhost:8000/api/upload', 
+      formData,
+      {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
+        onUploadProgress: (progressEvent) => {
+          uploadProgress.value = Math.round(
+            (progressEvent.loaded / progressEvent.total) * 100
+          )
+        }
+      }
+    )
+    
+    // 保存到知识库
+    await knowledgeStore.uploadDocument(
+      knowledgeStore.activeKnowledgeBaseId,
+      {
+        name: response.data.data.originalName,
+        path: response.data.data.filePath,
+        size: response.data.data.size
+      }
+    )
+    
+    ElMessage.success('文档上传成功')
+    uploadDialogVisible.value = false
+    uploadProgress.value = 0
+    
+  } catch (error) {
+    console.error('上传失败:', error)
+    ElMessage.error(`上传失败: ${error.response?.data?.message || error.message}`)
   }
-  
-  knowledgeStore.uploadDocument(
-    knowledgeStore.activeKnowledgeBaseId,
-    document
-  )
-  
-  uploadDialogVisible.value = false
-  ElMessage.success('文档上传成功')
 }
 
 const deleteDocument = async (documentId) => {
