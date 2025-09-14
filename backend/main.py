@@ -38,9 +38,11 @@ async def upload_file(file: UploadFile = File(...)):
         if not os.path.isdir(upload_dir):
             raise Exception(f"上传目录创建失败: {upload_dir}")
         
-        # 安全处理文件名
+        # 安全处理文件名：uuidv4.原文件后缀名
         import uuid
-        unique_filename = f"{uuid.uuid4().hex}_{file.filename}"
+        original_name = file.filename or "file"
+        file_ext = os.path.splitext(original_name)[1] or ".bin"  # 获取文件后缀，默认.bin
+        unique_filename = f"{uuid.uuid4().hex}{file_ext}"
         file_path = os.path.join(upload_dir, unique_filename)
         
         print(f"准备保存文件到: {file_path}")  # 调试日志
@@ -61,9 +63,11 @@ async def upload_file(file: UploadFile = File(...)):
             "code": 200,
             "message": "文件上传成功",
             "data": {
-                "originalName": file.filename,
-                "savedName": unique_filename,
-                "filePath": f"/api/uploads/{unique_filename}",
+                "originalName": file.filename,  # 原始文件名
+                "savedName": unique_filename,   # 存储的唯一文件名 (uuid.ext)
+                "fileKey": unique_filename,     # 文件唯一标识 (同savedName)
+                "filePath": f"/api/uploads/{unique_filename}",  # 完整访问路径
+                "downloadUrl": f"/api/uploads/{unique_filename}",  # 下载URL
                 "size": file_size
             }
         }
@@ -75,6 +79,40 @@ async def upload_file(file: UploadFile = File(...)):
             detail={
                 "code": 500,
                 "message": f"文件上传失败: {str(e)}"
+            }
+        )
+
+@app.delete("/api/delete/{filename}")
+async def delete_file(filename: str):
+    """删除上传的文件"""
+    try:
+        from urllib.parse import unquote
+        upload_dir = os.path.abspath("uploads")
+        decoded_filename = unquote(filename)  # 解码URL编码的文件名
+        file_path = os.path.join(upload_dir, decoded_filename)
+        
+        # 安全检查：防止目录遍历攻击
+        if not os.path.abspath(file_path).startswith(upload_dir):
+            raise HTTPException(status_code=400, detail="非法文件路径")
+            
+        if not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="文件不存在")
+            
+        os.remove(file_path)
+        return {
+            "code": 200,
+            "message": "文件删除成功",
+            "data": {
+                "deletedFile": filename
+            }
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "code": 500,
+                "message": f"文件删除失败: {str(e)}"
             }
         )
 

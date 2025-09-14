@@ -98,7 +98,11 @@ export const useKnowledgeStore = defineStore('knowledge', () => {
       id: Date.now().toString(),
       name: document.name,
       size: document.size,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      fileKey: document.fileKey,
+      savedName: document.savedName,
+      path: document.path,
+      downloadUrl: document.downloadUrl
     }
     
     documents.value[knowledgeBaseId].push(newDocument)

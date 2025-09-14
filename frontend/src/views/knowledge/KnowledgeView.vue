@@ -233,15 +233,22 @@ const uploadDocument = async () => {
       }
     )
     
-    // 保存到知识库
-    await knowledgeStore.uploadDocument(
+    // 保存完整文件信息到知识库（带调试日志）
+    const documentData = {
+      name: response.data.data.originalName,
+      path: response.data.data.filePath,
+      savedName: response.data.data.savedName,
+      fileKey: response.data.data.fileKey,
+      downloadUrl: response.data.data.downloadUrl,
+      size: response.data.data.size
+    }
+    console.log('保存文档数据:', documentData)
+    // 强制保存所有元数据到知识库
+    const result = await knowledgeStore.uploadDocument(
       knowledgeStore.activeKnowledgeBaseId,
-      {
-        name: response.data.data.originalName,
-        path: response.data.data.filePath,
-        size: response.data.data.size
-      }
+      documentData
     )
+    console.log('知识库存储结果:', result)
     
     ElMessage.success('文档上传成功')
     uploadDialogVisible.value = false
@@ -261,16 +268,48 @@ const deleteDocument = async (documentId) => {
       type: 'warning'
     })
     
-    knowledgeStore.deleteDocument(
+    const doc = documents.value.find(d => d.id === documentId)
+    if (!doc) throw new Error('文档不存在')
+    
+    console.log('删除文档详情:', {
+      id: doc.id,
+      name: doc.name,
+      fileKey: doc.fileKey,
+      savedName: doc.savedName,
+      path: doc.path
+    })
+    
+    // 使用fileKey或savedName删除文件
+    // 尝试获取文件标识（兼容新旧数据格式）
+    // 获取有效的文件标识（优先使用后端存储的标识）
+    const fileIdentifier = doc.fileKey || doc.savedName
+    console.log('文件标识:', fileIdentifier)
+    if (fileIdentifier) {
+      try {
+        // 对文件名进行编码处理
+        const encodedName = encodeURIComponent(fileIdentifier)
+        console.log('删除请求:', `http://localhost:8000/api/delete/${encodedName}`)
+        await axios.delete(`http://localhost:8000/api/delete/${encodedName}`)
+      } catch (error) {
+        console.error('文件删除失败:', error)
+        // 继续删除记录
+      }
+    }
+
+    // 从知识库删除记录
+    await knowledgeStore.deleteDocument(
       knowledgeStore.activeKnowledgeBaseId,
       documentId
     )
     
-    ElMessage.success('文档删除成功')
+    ElMessage.success(doc.fileKey ? '文档和文件删除成功' : '文档记录删除成功')
+    
   } catch (error) {
-    console.log('取消删除文档', error)
+    console.error('删除失败:', error)
+    ElMessage.error(`删除失败: ${error.message}`)
   }
 }
+
 
 const handleRowClick = (row) => {
   if (row.isUpload) {
