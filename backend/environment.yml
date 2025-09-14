@@ -1,0 +1,45 @@
+name: multimodal-rag-pdf
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.9
+  - pip>=23.0
+  
+  # System libraries
+  - poppler>=23.10.0
+  - tesseract>=5.0.0
+  
+  # Core Python
+  - numpy>=1.24.0
+  - pandas>=1.5.0
+  - pillow>=9.0.0
+  - opencv>=4.8.0
+  
+  # Development tools
+  - jupyter>=1.0.0
+  - notebook>=6.5.0
+  
+  # pip dependencies
+  - pip:
+    # LangChain ecosystem
+    - langchain-core>=0.1.0
+    - langchain-community>=0.0.1
+    - langchain-unstructured>=0.1.0
+    
+    # Document processing
+    - unstructured>=0.10.0
+    - unstructured[local-inference]>=0.10.0
+    - pymupdf>=1.26.4
+    - pypdf>=3.0.0
+    - reportlab>=3.6.0
+    
+    # OCR & Vision
+    - paddlepaddle>=2.5.0
+    - paddleocr>=2.7.0
+    - pytesseract>=0.3.10
+    - html2text>=2025.4.15
+    - matplotlib>=3.7.0
+    
+    # Utilities
+    - python-dotenv>=1.0.1
