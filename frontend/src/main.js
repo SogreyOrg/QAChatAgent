@@ -22,6 +22,12 @@ for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
 
 // 注册全局预览组件
 const preview = createApp(GlobalPreview)
+// 为全局预览组件注册Element Plus
+preview.use(ElementPlus)
+// 注册Element Plus图标
+for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
+  preview.component(key, component)
+}
 const previewEl = document.createElement('div')
 previewEl.id = 'global-preview'
 document.body.appendChild(previewEl)

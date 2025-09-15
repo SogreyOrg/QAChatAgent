@@ -2,6 +2,22 @@
 
 这是一个基于Vue 3 + Vite构建的知识库问答聊天代理前端项目。该项目使用了现代前端技术栈，包括Vue 3、Vite、Pinia、Vue Router和Element Plus。
 
+## 最近修复
+
+### 2025/9/15 修复内容
+
+1. **Element Plus组件解析错误修复**
+   - 问题：全局预览组件中的Element Plus组件（如el-button）无法被正确解析
+   - 原因：全局预览组件创建了单独的Vue应用实例，但没有为该实例注册Element Plus
+   - 解决方案：在全局预览组件的应用实例中也注册Element Plus和Element Plus图标
+   - 修改文件：`src/main.js`
+
+2. **Vue Router警告修复**
+   - 问题：路由配置中存在命名冲突，导致Vue Router警告
+   - 原因：父路由和空路径子路由的名称配置不当
+   - 解决方案：将路由名称从父路由移到子路由上
+   - 修改文件：`src/router/index.js`
+
 ## 项目功能
 
 - 知识库管理：创建、查看和删除知识库

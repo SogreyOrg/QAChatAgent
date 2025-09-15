@@ -17,11 +17,11 @@ const router = createRouter({
     },
     {
       path: '/knowledge',
-      name: 'knowledge',
       component: KnowledgeManagement,
       children: [
         {
           path: '',
+          name: 'knowledge',
           component: KnowledgeView
         }
       ]
