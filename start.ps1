@@ -27,6 +27,12 @@ $backendJob = Start-Job -ScriptBlock {
         Write-Host "警告: 未找到虚拟环境，尝试直接运行..."
     }
     
+    # 检查并创建 uploads 目录
+    if (-not (Test-Path "uploads")) {
+        Write-Host "创建 uploads 目录..."
+        New-Item -ItemType Directory -Path "uploads" -Force | Out-Null
+    }
+    
     # 运行后端服务
     Write-Host "启动后端服务..."
     python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
