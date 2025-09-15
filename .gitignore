@@ -20,7 +20,7 @@ yarn-error.log*
 *.swo
 
 # 上传文件
-backend/uploads/*
+backend/uploads/*/*.*
 !backend/uploads/.gitkeep
 
 # 日志文件
