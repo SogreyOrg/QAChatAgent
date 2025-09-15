@@ -102,7 +102,8 @@ import { ref, computed, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Setting } from '@element-plus/icons-vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import axios from 'axios'
+import { ElMessage, ElMessageBox, ElLoading, ElNotification } from 'element-plus'
 
 const router = useRouter()
 const knowledgeStore = useKnowledgeStore()
@@ -178,22 +179,77 @@ const previewDocument = (document) => {
   }
 }
 
+// const deleteDocument = async (documentId) => {
+//   try {
+//     await ElMessageBox.confirm('确定要删除此文档吗？', '提示', {
+//       confirmButtonText: '确定',
+//       cancelButtonText: '取消',
+//       type: 'warning'
+//     })
+    
+//     knowledgeStore.deleteDocument(knowledgeStore.activeKnowledgeBaseId, documentId)
+//     ElMessage.success('文档删除成功')
+//   } catch (error) {
+//     console.log('取消删除文档', error)
+//   }
+// }
+
 const deleteDocument = async (documentId) => {
   try {
-    await ElMessageBox.confirm('确定要删除此文档吗？', '提示', {
-      confirmButtonText: '确定',
+    await ElMessageBox.confirm('确定要删除此文档吗？', '警告', {
+      confirmButtonText: '删除',
       cancelButtonText: '取消',
-      type: 'warning'
+      type: 'warning',
+      confirmButtonClass: 'el-button--danger'
     })
-    
-    knowledgeStore.deleteDocument(knowledgeStore.activeKnowledgeBaseId, documentId)
-    ElMessage.success('文档删除成功')
+
+    const doc = documents.value.find(d => d.id === documentId)
+    if (!doc) throw new Error('文档不存在')
+
+    const loading = ElLoading.service({
+      lock: true,
+      text: '正在删除文档...',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      // 并行删除文件和相关记录
+      const [fileDeleteResult] = await Promise.allSettled([
+        axios.delete(`http://localhost:8000/api/delete/${encodeURIComponent(doc.fileKey || doc.savedName)}`),
+        knowledgeStore.deleteDocument(
+          knowledgeStore.activeKnowledgeBaseId,
+          documentId
+        )
+      ])
+
+      if (fileDeleteResult.status === 'rejected') {
+        console.error('文件删除失败:', fileDeleteResult.reason)
+        throw new Error('文件删除失败: ' + (fileDeleteResult.reason.response?.data?.message || fileDeleteResult.reason.message))
+      }
+
+      // 更新本地数据
+      documents.value = documents.value.filter(d => d.id !== documentId)
+      
+      ElNotification.success({
+        title: '删除成功',
+        message: `文档 "${doc.name}" 已删除`,
+        duration: 3000,
+        position: 'bottom-right'
+      })
+    } finally {
+      loading.close()
+    }
   } catch (error) {
-    console.log('取消删除文档', error)
+    if (error !== 'cancel') {
+      ElNotification.error({
+        title: '删除失败',
+        message: error.response?.data?.message || error.message,
+        duration: 5000,
+        position: 'bottom-right'
+      })
+    }
   }
 }
-
-
 
 const formatFileSize = (bytes) => {
   if (!bytes) return ''
