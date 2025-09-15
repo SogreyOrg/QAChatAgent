@@ -50,8 +50,8 @@
             </el-avatar>
           </div>
           <div class="content">
-            <div class="text">{{ message.content }}</div>
             <div class="time">{{ formatTime(message.timestamp) }}</div>
+            <div class="text">{{ message.content }}</div>
           </div>
         </div>
       </div>
@@ -229,7 +229,7 @@ onMounted(() => {
 }
 
 .avatar {
-  margin: 0 10px;
+  margin: 25px 10px 0;
 }
 
 .avatar .el-avatar {
@@ -278,10 +278,15 @@ onMounted(() => {
   border: none;
 }
 
-.time {
+.message .content .time{
+  text-align: start;
   margin-top: 4px;
   font-size: 12px;
   color: var(--text-secondary);
+}
+
+.message.user .content .time{
+  text-align: end;
 }
 
 .input-area {

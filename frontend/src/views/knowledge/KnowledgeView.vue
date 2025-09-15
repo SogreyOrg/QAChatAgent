@@ -1,5 +1,3 @@
-
-
 <template>
   <div class="knowledge-view">
     <div class="knowledge-header">
@@ -27,10 +25,6 @@
       </el-button>
     </div>
     
-
-    
-
-    
     <el-table
       :data="[{
         id: 'upload',
@@ -51,7 +45,11 @@
           <span v-else>{{ row.name }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="size" label="大小" width="120" />
+      <el-table-column prop="size" label="大小" width="120">
+        <template #default="{ row }">
+          {{ row.size ? formatFileSize(row.size) : '' }}
+        </template>
+      </el-table-column>
       <el-table-column prop="uploadedAt" label="上传时间" width="180">
         <template #default="{ row }">
           {{ formatTime(row.uploadedAt) }}
@@ -75,33 +73,6 @@
       </el-table-column>
     </el-table>
     
-    <!-- 新建知识库对话框 -->
-    <el-dialog
-      v-model="createDialogVisible"
-      title="新建知识库"
-      width="30%"
-    >
-      <el-form label-width="80px">
-        <el-form-item label="名称" required>
-          <el-input
-            v-model="newKnowledgeBaseName"
-            placeholder="请输入知识库名称"
-          />
-        </el-form-item>
-      </el-form>
-      
-      <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :disabled="!newKnowledgeBaseName"
-          @click="createKnowledgeBase"
-        >
-          创建
-        </el-button>
-      </template>
-    </el-dialog>
-
     <!-- 上传文档对话框 -->
     <el-dialog
       v-model="uploadDialogVisible"
@@ -145,33 +116,41 @@
       :title="previewDocumentName"
       width="80%"
       top="5vh"
+      destroy-on-close
+      fullscreen
     >
       <div class="document-preview">
-        <p>这里是文档预览内容...</p>
-        <!-- 实际项目中这里会嵌入PDF预览组件或其他文档预览组件 -->
+        <file-preview v-if="previewDocumentData" :file="previewDocumentData" class="knowledge-preview" />
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
 import axios from 'axios'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, UploadFilled, Delete, Plus } from '@element-plus/icons-vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
+import FilePreview from '@/components/FilePreview.vue'
 
 const uploadProgress = ref(0)
 const knowledgeStore = useKnowledgeStore()
-const createDialogVisible = ref(false)
 const uploadDialogVisible = ref(false)
 const previewDialogVisible = ref(false)
-const newKnowledgeBaseName = ref('')
 const selectedFile = ref(null)
 const previewDocumentName = ref('')
+const previewDocumentData = ref(null)
 
 const activeKnowledgeBase = computed(() => knowledgeStore.activeKnowledgeBase())
 const activeKnowledgeBaseId = computed(() => knowledgeStore.activeKnowledgeBaseId)
+const documents = computed(() => {
+  // 过滤掉空文档列表的初始数据
+  const docs = knowledgeStore.activeDocuments()
+  return docs
+    .filter(doc => doc.id !== '101' && doc.id !== '102' && doc.id !== '103' && doc.id !== '104' && doc.id !== '105')
+    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+})
 
 const openUploadDialog = () => {
   uploadDialogVisible.value = true
@@ -182,25 +161,13 @@ const deleteKnowledgeBase = () => {
   // 直接调用store中的方法，store内部已包含确认对话框和提示
   knowledgeStore.deleteKnowledgeBase(knowledgeStore.activeKnowledgeBaseId)
 }
-const documents = computed(() => {
-  // 过滤掉空文档列表的初始数据
-  const docs = knowledgeStore.activeDocuments()
-  return docs.filter(doc => doc.id !== '101' && doc.id !== '102' && doc.id !== '103' && doc.id !== '104' && doc.id !== '105')
-})
-
-const openCreateDialog = () => {
-  createDialogVisible.value = true
-  newKnowledgeBaseName.value = ''
-}
-
-
 
 const handleFileChange = (file) => {
   selectedFile.value = file.raw
 }
 
 const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes'
+  if (!bytes || bytes === 0) return '0 Bytes'
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
@@ -208,7 +175,12 @@ const formatFileSize = (bytes) => {
 }
 
 const formatTime = (timestamp) => {
-  return new Date(timestamp).toLocaleString()
+  if (!timestamp || timestamp === '') return ''
+  try {
+    return new Date(timestamp).toLocaleString()
+  } catch {
+    return ''
+  }
 }
 
 const uploadDocument = async () => {
@@ -233,7 +205,7 @@ const uploadDocument = async () => {
       }
     )
     
-    // 保存完整文件信息到知识库（带调试日志）
+    // 保存完整文件信息到知识库
     const documentData = {
       name: response.data.data.originalName,
       path: response.data.data.filePath,
@@ -242,13 +214,11 @@ const uploadDocument = async () => {
       downloadUrl: response.data.data.downloadUrl,
       size: response.data.data.size
     }
-    console.log('保存文档数据:', documentData)
-    // 强制保存所有元数据到知识库
-    const result = await knowledgeStore.uploadDocument(
+    
+    await knowledgeStore.uploadDocument(
       knowledgeStore.activeKnowledgeBaseId,
       documentData
     )
-    console.log('知识库存储结果:', result)
     
     ElMessage.success('文档上传成功')
     uploadDialogVisible.value = false
@@ -271,28 +241,14 @@ const deleteDocument = async (documentId) => {
     const doc = documents.value.find(d => d.id === documentId)
     if (!doc) throw new Error('文档不存在')
     
-    console.log('删除文档详情:', {
-      id: doc.id,
-      name: doc.name,
-      fileKey: doc.fileKey,
-      savedName: doc.savedName,
-      path: doc.path
-    })
-    
     // 使用fileKey或savedName删除文件
-    // 尝试获取文件标识（兼容新旧数据格式）
-    // 获取有效的文件标识（优先使用后端存储的标识）
     const fileIdentifier = doc.fileKey || doc.savedName
-    console.log('文件标识:', fileIdentifier)
     if (fileIdentifier) {
       try {
-        // 对文件名进行编码处理
         const encodedName = encodeURIComponent(fileIdentifier)
-        console.log('删除请求:', `http://localhost:8000/api/delete/${encodedName}`)
         await axios.delete(`http://localhost:8000/api/delete/${encodedName}`)
       } catch (error) {
         console.error('文件删除失败:', error)
-        // 继续删除记录
       }
     }
 
@@ -310,7 +266,6 @@ const deleteDocument = async (documentId) => {
   }
 }
 
-
 const handleRowClick = (row) => {
   if (row.isUpload) {
     openUploadDialog()
@@ -320,20 +275,28 @@ const handleRowClick = (row) => {
 }
 
 const previewDocument = (document) => {
-  previewDocumentName.value = document.name
-  previewDialogVisible.value = true
+  try {
+    const instance = getCurrentInstance()
+    if (instance && instance.appContext && instance.appContext.app) {
+      const app = instance.appContext.app
+      if (app.config.globalProperties.$preview) {
+        app.config.globalProperties.$preview(document)
+        return
+      }
+    }
+    
+    // 备选方案：使用本地预览对话框
+    previewDocumentName.value = document.name
+    previewDocumentData.value = document
+    previewDialogVisible.value = true
+  } catch (error) {
+    console.error('预览出错:', error)
+    // 使用本地预览对话框作为最后保障
+    previewDocumentName.value = document.name
+    previewDocumentData.value = document
+    previewDialogVisible.value = true
+  }
 }
-
-const createKnowledgeBase = async () => {
-  if (!newKnowledgeBaseName.value) return
-  
-  knowledgeStore.createKnowledgeBase(newKnowledgeBaseName.value)
-  createDialogVisible.value = false
-  newKnowledgeBaseName.value = ''
-  ElMessage.success('知识库创建成功')
-}
-
-
 </script>
 
 <style scoped>
@@ -343,7 +306,6 @@ const createKnowledgeBase = async () => {
   position: relative;
 }
 
-/* 添加科技感背景 */
 .knowledge-view::before {
   content: '';
   position: absolute;
@@ -390,7 +352,6 @@ const createKnowledgeBase = async () => {
   gap: 10px;
 }
 
-/* 添加按钮发光效果 */
 .document-actions .el-button {
   position: relative;
   overflow: hidden;
@@ -431,18 +392,17 @@ const createKnowledgeBase = async () => {
 }
 
 .document-preview {
-  height: 70vh;
+  height: 100%;
   overflow: auto;
   background-color: var(--bg-medium);
   border: 1px solid var(--border-color);
   border-radius: 4px;
-  padding: 20px;
+  padding: 0;
   color: var(--text-primary);
   box-shadow: var(--shadow-md);
   position: relative;
 }
 
-/* 添加表格科技感样式 */
 .el-table {
   background-color: var(--bg-medium) !important;
   border: 1px solid var(--border-color);
@@ -483,7 +443,6 @@ const createKnowledgeBase = async () => {
   background-color: var(--bg-light) !important;
 }
 
-/* 上传区域样式 */
 .el-upload {
   border: 1px dashed var(--border-color);
   border-radius: 6px;
@@ -507,29 +466,15 @@ const createKnowledgeBase = async () => {
   font-style: normal;
 }
 
-/* 对话框样式 */
-.el-dialog {
-  background-color: var(--bg-medium);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-lg);
-}
-
-.el-dialog__header {
-  border-bottom: 1px solid var(--border-color);
-}
-
-.el-dialog__title {
-  color: var(--accent-color);
-}
-
 @keyframes shine {
   0% {
-    left: -50%;
-    top: -50%;
+    left: -100%;
+  }
+  20% {
+    left: 100%;
   }
   100% {
-    left: 150%;
-    top: 150%;
+    left: 100%;
   }
 }
 </style>

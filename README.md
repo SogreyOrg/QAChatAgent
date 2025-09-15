@@ -1,21 +1,23 @@
-# QAChatAgent 项目
+# QAChatAgent 知识库问答系统
 
 <div align="center">
   <a href="README_CN.md">🇨🇳 中文版</a> | 🇺🇸 English
 </div>
 
-一个结合知识库管理和PDF处理的问答聊天代理系统，包含前后端完整实现。
+基于多模态文档的智能问答系统，支持PDF/图片/Markdown/文本的解析与预览，包含完整的前后端实现。
 
 ## 🎯 当前版本功能 (v0.3.0)
 
 ✅ 知识库管理功能  
-✅ PDF文件上传与处理  
-✅ 前端Vue3 + Element Plus界面  
-✅ FastAPI后端服务  
-✅ 文件上传进度显示  
-✅ 文件元数据管理 (fileKey, savedName等)  
-✅ 文件删除功能  
-✅ 前后端文件状态同步  
+✅ 多格式文件上传与处理（PDF/图片/Markdown/文本）  
+✅ 文件预览系统（支持多种格式实时预览）  
+✅ 智能文件名显示（长文件名自动截断）  
+✅ 按上传时间倒序排序  
+✅ 响应式前端界面（Vue3 + Element Plus）  
+✅ RESTful API服务（FastAPI）  
+✅ 文件元数据管理（fileKey/savedName/path等）  
+✅ 前后端状态实时同步  
+✅ 完善的错误处理与日志  
 
 ## 🏗️ 项目结构
 
@@ -23,15 +25,19 @@
 QAChatAgent/
 ├── backend/                  # 后端服务
 │   ├── main.py               # FastAPI主应用
-│   ├── pdf_to_markdown.py    # PDF处理核心逻辑
+│   ├── pdf_to_markdown.py    # 文档处理核心
+│   ├── uploads/              # 文件存储目录
 │   ├── requirements.txt      # Python依赖
 │   └── environment.yml       # Conda环境配置
 ├── frontend/                 # 前端项目
 │   ├── src/                  # Vue3源代码
+│   │   ├── components/       # 公共组件
+│   │   │   ├── FilePreview.vue  # 文件预览组件
+│   │   │   └── GlobalPreview.vue # 全局预览控制
 │   │   ├── stores/           # Pinia状态管理
-│   │   └── views/knowledge/  # 知识库管理界面
-│   └── ...                   # 前端配置和依赖
-├── tmp/                      # 原始Python程序备份
+│   │   ├── views/knowledge/  # 知识库管理界面
+│   │   └── App.vue           # 根组件
+│   └── vite.config.js        # 前端构建配置
 └── README.md                 # 项目说明
 ```
 
@@ -76,16 +82,20 @@ npm run dev
 
 ## 📌 版本更新
 
+### v0.4.0 (2025-09-15)
+- 新增多格式文件预览系统
+- 实现智能文件名显示（截断长文件名）
+- 统一按上传时间倒序排序
+- 优化响应式布局
+
 ### v0.3.0 (2025-09-14)
-- 新增文件元数据管理功能
-- 实现前后端文件状态同步
-- 完善文件删除流程
-- 修复文件上传后元数据丢失问题
+- 文件元数据管理功能
+- 前后端状态同步优化
+- 完善错误处理机制
 
 ### v0.2.0 (2025-09-10)
-- 初始版本发布
-- 实现基础文件上传功能
-- 搭建知识库管理界面
+- 基础文件上传功能
+- 知识库管理界面搭建
 
 ## 📄 License
 

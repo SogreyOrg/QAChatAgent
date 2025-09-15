@@ -49,10 +49,32 @@
             :data="documents"
             style="width: 100%"
             @row-click="handleDocumentClick"
+            @cell-click="handleDocumentClick"
           >
-            <el-table-column prop="name" label="文档名称" />
-            <el-table-column prop="size" label="大小" width="100" />
-            <el-table-column label="操作" width="80">
+            <el-table-column prop="name" label="文档名称" min-width="100">
+              <template #default="{ row }">
+                <el-tooltip effect="dark" placement="top">
+                  <template #content>
+                    <div>文件名: {{ row.name }}</div>
+                    <div>大小: {{ formatFileSize(row.size) }}</div>
+                    <div>上传时间: {{ formatTime(row.uploadedAt) }}</div>
+                  </template>
+                  <span 
+                    class="document-name" 
+                    @click.stop="previewDocument(row)"
+                    style="display: inline-block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;"
+                  >
+                    {{ formatFileName(row.name) }}
+                  </span>
+                </el-tooltip>
+              </template>
+            </el-table-column>
+            <el-table-column prop="size" label="大小" width="80" align="center">
+              <template #default="{ row }">
+                {{ formatFileSize(row.size) }}
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="70" align="center">
               <template #default="{ row }">
                 <el-button
                   type="danger"
@@ -76,7 +98,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, getCurrentInstance } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Setting } from '@element-plus/icons-vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
@@ -87,7 +109,10 @@ const knowledgeStore = useKnowledgeStore()
 
 const activeKnowledgeBaseId = computed(() => knowledgeStore.activeKnowledgeBaseId)
 const knowledgeBases = computed(() => knowledgeStore.knowledgeBases)
-const documents = computed(() => knowledgeStore.activeDocuments())
+const documents = computed(() => {
+  const docs = knowledgeStore.activeDocuments()
+  return [...docs].sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
+})
 
 const manageKnowledge = () => {
   router.push('/knowledge')
@@ -122,6 +147,37 @@ const handleKnowledgeBaseSelect = (knowledgeBaseId) => {
   knowledgeStore.activeKnowledgeBaseId = knowledgeBaseId
 }
 
+// 预览文档
+const emit = defineEmits(['preview-document'])
+
+const previewDocument = (document) => {
+  console.log('=== 文档预览调试 ===')
+  const fullPath = document?.path ? `http://localhost:8000${document.path}` : null
+  console.log('地址:', fullPath)
+  try {
+    // 统一通过事件触发预览
+    console.log('触发preview-document事件')
+    emit('preview-document', {
+      ...document,
+      path: fullPath,
+      downloadUrl: fullPath,
+      type: document.name.split('.').pop().toLowerCase()
+    })
+  } catch (error) {
+    console.error('预览出错:', error)
+    ElMessage.error(`预览失败: ${error.message}`)
+    // 作为最后手段，直接打开URL
+    if (fullPath) {
+      console.log('尝试直接打开文件URL:', fullPath)
+      window.open(fullPath, '_blank')
+    } else {
+      console.error('文档缺少path属性，无法预览')
+    }
+  } finally {
+    console.groupEnd()
+  }
+}
+
 const deleteDocument = async (documentId) => {
   try {
     await ElMessageBox.confirm('确定要删除此文档吗？', '提示', {
@@ -139,13 +195,71 @@ const deleteDocument = async (documentId) => {
 
 
 
-const handleDocumentClick = (document) => {
-  // 在这里处理文档点击事件，可以打开文档预览或编辑
-  console.log('点击文档:', document)
+const formatFileSize = (bytes) => {
+  if (!bytes) return ''
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+const formatTime = (timestamp) => {
+  if (!timestamp) return ''
+  return new Date(timestamp).toLocaleString()
+}
+
+const formatFileName = (name) => {
+  if (!name) return ''
+  const maxLength = 15 // 最大显示长度
+  const extensionIndex = name.lastIndexOf('.')
+  
+  if (extensionIndex <= 0 || name.length <= maxLength) {
+    return name
+  }
+  
+  const prefix = name.substring(0, 5)
+  const suffix = name.substring(extensionIndex - 3, extensionIndex)
+  const extension = name.substring(extensionIndex)
+  
+  return `${prefix}...${suffix}${extension}`
+}
+
+const handleDocumentClick = (document, column, event) => {
+  console.group('文档点击事件')
+  console.log('文档对象:', document)
+  console.log('点击列:', column)
+  console.log('事件目标:', event.target)
+  
+  try {
+    // 只处理行点击，避免与列内按钮冲突
+    if (column?.property) {
+      console.log('忽略列点击:', column.property)
+      return
+    }
+    
+    console.log('触发预览...')
+    previewDocument(document)
+  } catch (error) {
+    console.error('文档点击处理出错:', error)
+    // 作为最后手段，直接打开文件URL
+    if (document?.path) {
+      window.open(`http://localhost:8000${document.path}`, '_blank')
+    }
+  } finally {
+    console.groupEnd()
+  }
 }
 </script>
 
 <style scoped>
+.document-name {
+  color: var(--el-color-primary);
+  cursor: pointer;
+}
+
+.document-name:hover {
+  text-decoration: underline;
+}
 .main-layout {
   display: flex;
   height: 100vh;

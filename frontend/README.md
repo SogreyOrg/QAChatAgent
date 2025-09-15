@@ -5,7 +5,11 @@
 ## 项目功能
 
 - 知识库管理：创建、查看和删除知识库
-- 文档管理：上传、查看和删除知识库中的文档
+- 文档管理：
+  - 上传、查看和删除知识库中的文档
+  - 文件预览：支持PDF/图片/Markdown/文本
+  - 智能排序：按上传时间倒序排列
+  - 优化显示：文件名截断、Tooltip提示
 - 聊天界面：基于知识库内容进行问答交互
 
 ## 技术栈
@@ -28,6 +32,8 @@ frontend/
 │   │   └── icons/       # SVG图标
 │   ├── components/      # 组件
 │   │   ├── layout/      # 布局组件
+│   │   ├── FilePreview.vue  # 文件预览组件
+│   │   ├── GlobalPreview.vue  # 全局预览组件
 │   │   └── KnowledgeManagement.vue  # 知识库管理组件
 │   ├── router/          # 路由配置
 │   ├── stores/          # Pinia状态管理
