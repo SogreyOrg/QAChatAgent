@@ -19,13 +19,10 @@ yarn-error.log*
 *.swp
 *.swo
 
-# 上传文件
-backend/uploads/*/*.*
-!backend/uploads/.gitkeep
-
-# 日志文件
-*.log
-log
+# 上传文件和日志
+backend/uploads/**
+backend/log
+backend/pdf_processing.log
 
 # 系统文件
 .DS_Store
