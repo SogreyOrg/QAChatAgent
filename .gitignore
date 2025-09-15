@@ -51,20 +51,18 @@ venv-py311/
 *.swp
 *.swo
 
-# Output files
-*.pdf
-*.png
-*.jpg
-*.jpeg
-*.md
-!README.md
-
 # Local development files
 local_settings.py
 settings.ini
 
 # Log files
 *.log
+log.*
+log
 
 # Temp files
 *.tmp
+
+./backup/uploads/*/*.*
+.codebuddy
+./.vscode/
