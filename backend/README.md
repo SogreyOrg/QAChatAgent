@@ -117,13 +117,55 @@ PDF 处理依赖 Poppler，可通过以下方式配置：
 
 ## 启动服务
 
+1. **切换到后端目录**：
+```bash
+cd backend
+```
+
+2. **激活虚拟环境**：
+```bash
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# Windows (CMD)
+.\.venv\Scripts\activate.bat
+
+# Linux/MacOS
+source .venv/bin/activate
+
+# 验证虚拟环境是否激活成功
+# 激活后，命令行提示符前应显示虚拟环境名称，如：
+# (.venv) PS D:\github\赋范AI\QAChatAgent\backend>
+```
+
+3. **安装依赖**：
+```bash
+# 确保在虚拟环境中安装所有依赖
+pip install -r requirements.txt
+
+# 如果遇到权限问题，可以尝试：
+pip install --user -r requirements.txt
+```
+
+4. **检查安装的包**：
+```bash
+pip list
+# 应能看到 requirements.txt 中列出的所有包
+```
+
+3. **启动服务**：
 ```bash
 # 使用启动脚本
 ./start.sh
 
 # 或直接使用 uvicorn
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+PYTHONPATH=. uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
+
+4. **调试提示**：
+- 确保在虚拟环境中安装了所有依赖：`pip install -r requirements.txt`
+- 如果遇到导入错误，检查虚拟环境是否正确激活
+- 确保工作目录是`backend/`目录
 
 ## 目录结构
 
