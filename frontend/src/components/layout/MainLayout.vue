@@ -308,6 +308,33 @@ const handleDocumentClick = (document, column, event) => {
 </script>
 
 <style scoped>
+:root {
+  /* 基础色 */
+  --bg-dark: #0a0e17;
+  --bg-medium: #141a2a;
+  --bg-light: #1e2638;
+  --border-color: #2a3a50;
+  
+  /* 文字色 */
+  --text-primary: #e0e5ec;
+  --text-secondary: #8a9bb9;
+  
+  /* 强调色 */
+  --accent-color: #00b8ff;
+  --accent-glow: rgba(0, 184, 255, 0.3);
+  --primary-dark: rgba(0, 184, 255, 0.2);
+  
+  /* 表格专用变量 - 增强科技感 */
+  --el-table-header-bg-color: var(--bg-medium);
+  --el-table-tr-bg-color: var(--bg-dark);
+  --el-table-text-color: var(--text-primary);
+  --el-table-border-color: var(--border-color);
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--bg-light), var(--accent-glow) 10%);
+  --el-table-header-text-color: var(--accent-color);
+  --el-table-current-row-bg-color: color-mix(in srgb, var(--bg-light), var(--accent-color) 5%);
+  --el-table-fixed-box-shadow: 0 0 10px var(--accent-glow);
+}
+
 .document-name {
   color: var(--el-color-primary);
   cursor: pointer;
@@ -382,6 +409,123 @@ const handleDocumentClick = (document, column, event) => {
   position: relative;
 }
 
+/* 文档列表暗色风格 */
+/* 强制所有Element表格使用暗黑科技风格 */
+.el-table,
+.el-table__header-wrapper,
+.el-table__body-wrapper,
+.el-table__empty-block {
+  background-color: var(--bg-dark) !important;
+}
+
+.el-table {
+  --el-table-border-color: var(--border-color);
+  --el-table-header-bg-color: var(--bg-medium);
+  --el-table-row-hover-bg-color: color-mix(in srgb, var(--bg-light), var(--accent-color) 5%);
+  --el-table-current-row-bg-color: color-mix(in srgb, var(--bg-light), var(--accent-color) 10%);
+  
+  border: 1px solid var(--border-color);
+  box-shadow: 
+    0 0 10px rgba(0, 184, 255, 0.1),
+    inset 0 0 15px rgba(0, 184, 255, 0.05);
+}
+
+/* 上传弹框表格正文优化 */
+.el-dialog .el-table__body-wrapper,
+.el-dialog .el-table td {
+  background: linear-gradient(135deg, #0a0e17, #0f1524) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.el-dialog .el-table tr:hover td {
+  background: linear-gradient(135deg, #141a2a, #1a2238) !important;
+}
+
+.el-dialog .el-table {
+  box-shadow: 
+    inset 0 0 15px rgba(0, 184, 255, 0.1),
+    0 0 10px rgba(0, 184, 255, 0.2);
+}
+
+/* 知识库管理表格正文优化 */
+.knowledge-management .el-table__body-wrapper,
+.knowledge-management .el-table td {
+  background: linear-gradient(135deg, #0a0e17, #141a2a) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.knowledge-management .el-table tr:hover td {
+  background: linear-gradient(135deg, #1e2638, #242e4a) !important;
+}
+
+/* 左侧文件列表表格正文优化 */
+.sidebar .el-table__body-wrapper,
+.sidebar .el-table td {
+  background: linear-gradient(to right, #0a0e17, #141a2a) !important;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+.sidebar .el-table tr:hover td {
+  background: linear-gradient(to right, #1e2638, #283250) !important;
+}
+
+/* 左侧文件列表特殊样式 */
+.knowledge-list .el-table {
+  background: linear-gradient(to bottom, var(--bg-medium), var(--bg-dark)) !important;
+}
+
+/* 增强表头科技感 */
+.el-table th {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 0 0 5px var(--accent-glow);
+}
+
+/* 增强行悬停效果 */
+.el-table tr:hover td {
+  transition: all 0.2s ease-out;
+}
+
+/* 强化所有表头样式 */
+.el-table th {
+  background: linear-gradient(to bottom, var(--bg-medium), var(--bg-dark)) !important;
+  color: var(--accent-color) !important;
+  font-weight: 600;
+  text-shadow: 0 0 5px var(--accent-glow);
+  border-bottom: 1px solid var(--accent-color) !important;
+}
+
+/* 增强所有单元格效果 */
+.el-table td {
+  background-color: var(--bg-dark) !important;
+  transition: all 0.3s;
+  position: relative;
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+/* 弹框表格特殊样式 */
+.el-dialog .el-table th,
+.el-dialog .el-table td {
+  background-color: var(--bg-dark) !important;
+}
+
+/* 添加单元格底部光效 */
+.el-table td::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-color), transparent);
+  opacity: 0.1;
+}
+
+/* 当前行高亮效果 */
+.el-table__body tr.current-row td {
+  background-color: var(--el-table-current-row-bg-color) !important;
+}
+
 /* 添加科技感滚动条 */
 .document-list .el-scrollbar__thumb {
   background-color: var(--accent-color);
@@ -446,10 +590,33 @@ const handleDocumentClick = (document, column, event) => {
   background-color: var(--bg-light);
 }
 
+/* 知识库列表暗色风格 */
+.knowledge-list .el-menu {
+  --el-menu-bg-color: transparent;
+  --el-menu-text-color: var(--text-primary);
+  --el-menu-hover-bg-color: var(--bg-light);
+  --el-menu-active-color: var(--accent-color);
+}
+
+.knowledge-list .el-menu-item.is-active {
+  background: linear-gradient(90deg, var(--primary-dark), transparent) !important;
+}
+
 /* 添加按钮发光效果 */
 .el-button--primary {
   position: relative;
   overflow: hidden;
+}
+
+.el-button--danger {
+  background: linear-gradient(145deg, #ff4d4d, #cc0000);
+  border: none;
+  color: white !important;
+}
+
+.el-button--danger:hover {
+  background: linear-gradient(145deg, #ff6666, #e60000);
+  box-shadow: 0 0 10px rgba(255, 0, 0, 0.3);
 }
 
 .el-button--primary::before {
@@ -474,4 +641,10 @@ const handleDocumentClick = (document, column, event) => {
     top: 150%;
   }
 }
+@media (max-width: 768px) {
+  .document-list .el-table {
+    font-size: 14px;
+  }
+}
+
 </style>

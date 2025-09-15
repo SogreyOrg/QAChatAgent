@@ -1,7 +1,8 @@
-@import './assets/theme.css';
+@import "./assets/theme.css";
 
 :root {
-  font-family: 'Rajdhani', 'Orbitron', Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Rajdhani", "Orbitron", Inter, system-ui, Avenir, Helvetica,
+    Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -20,9 +21,16 @@ body {
   padding: 0;
   min-height: 100vh;
   background-color: var(--bg-dark);
-  background-image: 
-    radial-gradient(circle at 25% 25%, rgba(106, 60, 181, 0.05) 0%, transparent 50%),
-    radial-gradient(circle at 75% 75%, rgba(0, 184, 255, 0.05) 0%, transparent 50%);
+  background-image: radial-gradient(
+      circle at 25% 25%,
+      rgba(106, 60, 181, 0.05) 0%,
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 75% 75%,
+      rgba(0, 184, 255, 0.05) 0%,
+      transparent 50%
+    );
   transition: all 0.3s ease;
 }
 
@@ -31,7 +39,7 @@ body {
 }
 
 #app {
-  font-family: 'Rajdhani', 'Orbitron', Avenir, Helvetica, Arial, sans-serif;
+  font-family: "Rajdhani", "Orbitron", Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   color: var(--text-primary);
@@ -61,12 +69,36 @@ body {
   padding: 0 8px;
 }
 
+.el-table tr,
+.el-table th,
+.el-table td,
+table tr,
+table th,
+table td {
+  background: #141a2a !important;
+  color: #f5f7fa;
+}
+.el-dialog {
+  background: #141a2a !important;
+  color: #f5f7fa;
+}
 .el-dialog__body {
   padding: 20px;
 }
-
+.el-dialog__title {
+  color: #f5f7fa;
+}
+.el-upload-dragger {
+  background-color: #6b6868 !important;
+}
 .el-message-box {
   max-width: 400px;
+  background: #141a2a !important;
+  color: #f5f7fa;
+}
+
+.el-message-box__title {
+  color: #f5f7fa;
 }
 
 .el-button + .el-button {
