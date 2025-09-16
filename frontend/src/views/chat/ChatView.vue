@@ -5,28 +5,19 @@
       <div class="session-header">
         <h3>会话列表</h3>
         <el-button type="primary" size="small" @click="createNewChat">
-          <el-icon><Plus /></el-icon>
+          <el-icon>
+            <Plus />
+          </el-icon>
           新建
         </el-button>
       </div>
-      
+
       <el-scrollbar>
-        <el-menu
-          :default-active="activeChatId"
-          @select="handleChatSelect"
-        >
-          <el-menu-item
-            v-for="chat in chatSessions"
-            :key="chat.id"
-            :index="chat.id"
-          >
+        <el-menu :default-active="activeChatId" @select="handleChatSelect">
+          <el-menu-item v-for="chat in chatSessions" :key="chat.id" :index="chat.id">
             <template #title>
               <span>{{ chat.title }}</span>
-              <el-button
-                type="danger"
-                size="small"
-                @click.stop="deleteChat(chat.id)"
-              >
+              <el-button type="danger" size="small" @click.stop="deleteChat(chat.id)">
                 删除
               </el-button>
             </template>
@@ -34,16 +25,11 @@
         </el-menu>
       </el-scrollbar>
     </div>
-    
+
     <!-- 聊天内容区 -->
     <div class="chat-content">
       <div class="messages" ref="messagesRef">
-        <div
-          v-for="message in activeChat.messages"
-          :key="message.id"
-          class="message"
-          :class="message.role"
-        >
+        <div v-for="message in activeChat.messages" :key="message.id" class="message" :class="message.role">
           <div class="avatar">
             <el-avatar>
               {{ message.role === 'user' ? '我' : 'AI' }}
@@ -55,16 +41,10 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 消息输入框 -->
       <div class="input-area">
-        <el-input
-          v-model="inputMessage"
-          type="textarea"
-          :rows="3"
-          placeholder="输入消息..."
-          @keyup.enter="sendMessage"
-        />
+        <el-input v-model="inputMessage" type="textarea" :rows="3" placeholder="输入消息..." @keyup.enter="sendMessage" />
         <div class="actions">
           <el-button type="primary" @click="sendMessage">发送</el-button>
         </div>
@@ -101,7 +81,7 @@ const deleteChat = async (chatId) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     chatStore.deleteChat(chatId)
     ElMessage.success('会话删除成功')
   } catch (error) {
@@ -111,10 +91,10 @@ const deleteChat = async (chatId) => {
 
 const sendMessage = () => {
   if (!inputMessage.value.trim()) return
-  
+
   chatStore.sendMessage(inputMessage.value)
   inputMessage.value = ''
-  
+
   nextTick(() => {
     scrollToBottom()
   })
@@ -150,7 +130,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 75% 25%, rgba(0, 184, 255, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 25% 75%, rgba(106, 60, 181, 0.05) 0%, transparent 50%);
   pointer-events: none;
@@ -169,7 +149,7 @@ onMounted(() => {
 }
 
 .session-header {
-  padding: 17px 17px 18px;
+  padding: 20px 17px 21px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -202,7 +182,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 184, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 184, 255, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
@@ -278,14 +258,14 @@ onMounted(() => {
   border: none;
 }
 
-.message .content .time{
+.message .content .time {
   text-align: start;
   margin-top: 4px;
   font-size: 12px;
   color: var(--text-secondary);
 }
 
-.message.user .content .time{
+.message.user .content .time {
   text-align: end;
 }
 
@@ -326,6 +306,10 @@ onMounted(() => {
   align-items: center;
   transition: all 0.3s ease;
   border-left: 3px solid transparent;
+}
+
+.el-menu-item:hover {
+  background-color: var(--bg-light);
 }
 
 .el-menu-item.is-active {
@@ -370,6 +354,7 @@ onMounted(() => {
     left: -50%;
     top: -50%;
   }
+
   100% {
     left: 150%;
     top: 150%;

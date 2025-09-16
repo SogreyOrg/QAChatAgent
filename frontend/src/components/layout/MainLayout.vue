@@ -580,6 +580,10 @@ const handleDocumentClick = (document, column, event) => {
   border-left: 3px solid transparent;
 }
 
+.el-menu-item * {
+  color: var(--text-primary);
+}
+
 .el-menu-item.is-active {
   background: linear-gradient(90deg, var(--primary-dark), transparent);
   border-left: 3px solid var(--accent-color);

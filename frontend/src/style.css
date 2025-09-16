@@ -57,10 +57,6 @@ body {
   transition: all 0.3s;
 }
 
-.el-menu-item:hover {
-  background-color: #f5f7fa;
-}
-
 .el-table {
   margin-top: 10px;
 }
@@ -107,4 +103,14 @@ table td {
 
 .el-textarea__inner {
   resize: none;
+}
+
+.chat-view .chat-sessions {
+  overflow: hidden;
+}
+.chat-view .chat-content .el-textarea__inner {
+  font-family: sans-serif;
+  min-height: 37px;
+  font-size: initial;
+  font-weight: 700;
 }
