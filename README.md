@@ -30,8 +30,8 @@ QAChatAgent2/
 ## 快速启动
 ```powershell
 # 克隆项目
-git clone https://github.com/yourname/QAChatAgent2.git
-cd QAChatAgent2
+git clone https://github.com/SogreyOrg/QAChatAgent.git
+cd QAChatAgent
 
 # 启动服务 (需预先安装Python和Node.js)
 ./start.ps1
