@@ -4,43 +4,35 @@
       <h2>{{ activeKnowledgeBase.name }}</h2>
       <p>{{ activeKnowledgeBase.description }}</p>
     </div>
-    
+
     <div class="document-actions">
-      <el-button 
-        type="primary" 
-        size="small"
-        @click="openUploadDialog"
-      >
-        <el-icon><Upload /></el-icon>
+      <el-button type="primary" size="small" @click="openUploadDialog">
+        <el-icon>
+          <Upload />
+        </el-icon>
         上传文档
       </el-button>
-      <el-button
-        v-if="activeKnowledgeBaseId !== '0'"
-        type="danger"
-        size="small"
-        @click="deleteKnowledgeBase"
-      >
-        <el-icon><Delete /></el-icon>
+      <el-button v-if="activeKnowledgeBaseId !== '0'" type="danger" size="small" @click="deleteKnowledgeBase">
+        <el-icon>
+          <Delete />
+        </el-icon>
         删除知识库
       </el-button>
     </div>
-    
-    <el-table
-      :data="[{
-        id: 'upload',
-        name: '添加/上传文件',
-        size: '',
-        uploadedAt: '',
-        isUpload: true
-      }].concat(documents)"
-      style="width: 100%"
-      stripe
-      @row-click="handleRowClick"
-    >
+
+    <el-table :data="[{
+      id: 'upload',
+      name: '添加/上传文件',
+      size: '',
+      uploadedAt: '',
+      isUpload: true
+    }].concat(documents)" style="width: 100%" stripe @row-click="handleRowClick">
       <el-table-column prop="name" label="文档名称">
         <template #default="{ row }">
           <span v-if="row.isUpload" style="color: #409EFF; cursor: pointer">
-            <el-icon><Upload /></el-icon> {{ row.name }}
+            <el-icon>
+              <Upload />
+            </el-icon> {{ row.name }}
           </span>
           <span v-else>{{ row.name }}</span>
         </template>
@@ -61,73 +53,60 @@
             <el-button type="primary" size="small" @click.stop="previewDocument(row)">
               预览
             </el-button>
-            <el-button
-              type="danger"
-              size="small"
-              @click.stop="deleteDocument(row.id)"
-            >
+            <el-button type="danger" size="small" @click.stop="deleteDocument(row.id)">
               删除
             </el-button>
           </template>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <!-- 上传文档对话框 -->
-    <el-dialog
-      v-model="uploadDialogVisible"
-      title="上传文档"
-      width="30%"
-    >
-      <el-upload
-        class="upload-demo"
-        drag
-        action=""
-        :auto-upload="false"
-        :on-change="handleFileChange"
-        :show-file-list="false"
-      >
+    <el-dialog v-model="uploadDialogVisible" title="上传文档" width="30%">
+      <el-upload class="upload-demo" drag action="" :auto-upload="false" :on-change="handleFileChange"
+        :show-file-list="false">
         <el-icon class="el-icon--upload"><upload-filled /></el-icon>
         <div class="el-upload__text">
           拖拽文件到此处或<em>点击上传</em>
         </div>
       </el-upload>
-      
+
       <div v-if="selectedFile" class="file-info">
         <p>文件名: {{ selectedFile.name }}</p>
         <p>大小: {{ formatFileSize(selectedFile.size) }}</p>
       </div>
-      
+
       <template #footer>
         <el-button @click="uploadDialogVisible = false">取消</el-button>
-        <el-button
-          type="primary"
-          :disabled="!selectedFile"
-          @click="uploadDocument"
-        >
+        <el-button type="primary" :disabled="!selectedFile" @click="uploadDocument">
           上传
         </el-button>
       </template>
     </el-dialog>
-    
+
     <!-- 文档预览对话框 -->
-    <el-dialog
-      v-model="previewDialogVisible"
-      :title="previewDocumentName"
-      width="80%"
-      top="5vh"
-      destroy-on-close
-      fullscreen
-    >
+    <el-dialog v-model="previewDialogVisible" width="80%" top="5vh" destroy-on-close fullscreen>
+      <template #header>
+        <div class="dialog-header">
+          <span class="dialog-title">预览 - {{ previewDocumentName }}</span>
+          <div v-if="isPdfPreview" class="pdf-controls">
+            <el-radio-group v-model="viewMode" size="small">
+              <el-radio-button label="original">原文</el-radio-button>
+              <el-radio-button label="annotated">批注</el-radio-button>
+            </el-radio-group>
+          </div>
+        </div>
+      </template>
       <div class="document-preview">
-        <file-preview v-if="previewDocumentData" :file="previewDocumentData" class="knowledge-preview" />
+        <file-preview v-if="displayPreviewDocument" :file="displayPreviewDocument" :key="displayPreviewDocument?.path"
+          class="knowledge-preview" />
       </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, getCurrentInstance } from 'vue'
+import { ref, computed, getCurrentInstance, watch } from 'vue'
 import axios from 'axios'
 import { ElLoading, ElMessage, ElMessageBox } from 'element-plus'
 import { Upload, UploadFilled, Delete, Plus } from '@element-plus/icons-vue'
@@ -141,6 +120,64 @@ const previewDialogVisible = ref(false)
 const selectedFile = ref(null)
 const previewDocumentName = ref('')
 const previewDocumentData = ref(null)
+const viewMode = ref('original') // 默认显示原文
+
+// 判断当前预览文件是否为PDF
+const isPdfPreview = computed(() => {
+  if (!previewDocumentData.value?.name) return false
+  return previewDocumentData.value.name.toLowerCase().endsWith('.pdf')
+})
+
+// 根据当前模式决定显示的文件
+const displayPreviewDocument = computed(() => {
+  if (!previewDocumentData.value) return null
+
+  // 如果不是PDF或者是原文模式，直接返回当前文件
+  if (!isPdfPreview.value || viewMode.value === 'original') {
+    return previewDocumentData.value
+  }
+
+  // 批注模式：构建批注文件路径
+  const originalPath = previewDocumentData.value.path
+  const originalName = previewDocumentData.value.name
+
+  // 构建批注文件名和路径
+  const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'))
+  const annotatedName = `${nameWithoutExt}_annotated.pdf`
+
+  // 构建批注文件的路径
+  let annotatedPath = originalPath
+
+  // 如果路径包含文件名（通常是这种情况），替换文件名部分
+  if (originalPath.includes(previewDocumentData.value.fileKey)) {
+    // 假设文件路径中包含fileKey，我们需要构建新的fileKey
+    const fileKeyParts = previewDocumentData.value.fileKey.split('.')
+    const newFileKey = `${fileKeyParts[0]}_annotated.${fileKeyParts[1]}`
+    annotatedPath = originalPath.replace(previewDocumentData.value.fileKey, newFileKey)
+  } else {
+    // 如果没有fileKey，尝试直接替换文件名
+    annotatedPath = originalPath.replace(
+      originalName.replace(/\s/g, '%20'), // URL中空格可能被编码为%20
+      annotatedName.replace(/\s/g, '%20')
+    )
+  }
+
+  console.log('原始路径:', originalPath)
+  console.log('批注路径:', annotatedPath)
+
+  return {
+    ...previewDocumentData.value,
+    name: annotatedName,
+    path: annotatedPath
+  }
+})
+
+// 监听预览对话框状态，重置查看模式
+watch(previewDialogVisible, (newVal) => {
+  if (newVal) {
+    viewMode.value = 'original' // 每次打开预览时默认显示原文
+  }
+})
 
 const activeKnowledgeBase = computed(() => knowledgeStore.activeKnowledgeBase())
 const activeKnowledgeBaseId = computed(() => knowledgeStore.activeKnowledgeBaseId)
@@ -185,13 +222,13 @@ const formatTime = (timestamp) => {
 
 const uploadDocument = async () => {
   if (!selectedFile.value) return
-  
+
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
-    
+
     const response = await axios.post(
-      'http://localhost:8000/api/upload', 
+      'http://localhost:8000/api/upload',
       formData,
       {
         headers: {
@@ -204,7 +241,7 @@ const uploadDocument = async () => {
         }
       }
     )
-    
+
     // 保存完整文件信息到知识库
     const documentData = {
       name: response.data.data.originalName,
@@ -214,16 +251,16 @@ const uploadDocument = async () => {
       downloadUrl: response.data.data.downloadUrl,
       size: response.data.data.size
     }
-    
+
     await knowledgeStore.uploadDocument(
       knowledgeStore.activeKnowledgeBaseId,
       documentData
     )
-    
+
     ElMessage.success('文档上传成功')
     uploadDialogVisible.value = false
     uploadProgress.value = 0
-    
+
   } catch (error) {
     console.error('上传失败:', error)
     ElMessage.error(`上传失败: ${error.response?.data?.message || error.message}`)
@@ -237,10 +274,10 @@ const deleteDocument = async (documentId) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    
+
     const doc = documents.value.find(d => d.id === documentId)
     if (!doc) throw new Error('文档不存在')
-    
+
     // 使用fileKey或savedName删除文件
     const fileIdentifier = doc.fileKey || doc.savedName
     if (fileIdentifier) {
@@ -257,9 +294,9 @@ const deleteDocument = async (documentId) => {
       knowledgeStore.activeKnowledgeBaseId,
       documentId
     )
-    
+
     ElMessage.success(doc.fileKey ? '文档和文件删除成功' : '文档记录删除成功')
-    
+
   } catch (error) {
     console.error('删除失败:', error)
     ElMessage.error(`删除失败: ${error.message}`)
@@ -284,7 +321,7 @@ const previewDocument = (document) => {
         return
       }
     }
-    
+
     // 备选方案：使用本地预览对话框
     previewDocumentName.value = document.name
     previewDocumentData.value = document
@@ -302,7 +339,7 @@ const previewDocument = (document) => {
 <style scoped>
 .knowledge-view {
   padding: 20px;
-  height: 100%;
+  height: 90%;
   position: relative;
 }
 
@@ -313,7 +350,7 @@ const previewDocument = (document) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     radial-gradient(circle at 25% 25%, rgba(106, 60, 181, 0.05) 0%, transparent 50%),
     radial-gradient(circle at 75% 75%, rgba(0, 184, 255, 0.05) 0%, transparent 50%);
   pointer-events: none;
@@ -420,7 +457,7 @@ const previewDocument = (document) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 184, 255, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 184, 255, 0.03) 1px, transparent 1px);
   background-size: 20px 20px;
@@ -466,13 +503,31 @@ const previewDocument = (document) => {
   font-style: normal;
 }
 
+.dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.dialog-title {
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.pdf-controls {
+  margin-left: 20px;
+}
+
 @keyframes shine {
   0% {
     left: -100%;
   }
+
   20% {
     left: 100%;
   }
+
   100% {
     left: 100%;
   }
