@@ -269,11 +269,8 @@ async def stream_chat_response(session_id: str, message: str):
             db.refresh(session)
         
         # 存储用户消息
-        if not session:
-            raise HTTPException(status_code=404, detail="会话不存在")
-            
         user_message = Message(
-            session_id=session.session_id,
+            session_id=session_id,  # 注意这里应该是session.id而不是session_id
             role="user",
             content=str(message)
         )
@@ -289,38 +286,59 @@ async def stream_chat_response(session_id: str, message: str):
                     # logger.info(f"AI响应: {content}")
                     full_response += content
                     yield chunk
-                
+
                 # 存储AI响应
                 if full_response:
-                    # 使用新的数据库会话存储AI响应
-                    store_db = None
                     try:
-                        store_db = SessionLocal()
                         ai_message = Message(
-                            session_id=session_id,
+                            session_id=session_id,  # 使用session.id而不是session_id
                             role="assistant",
                             content=full_response
                         )
-                        store_db.add(ai_message)
-                        store_db.commit()
+                        db.add(ai_message)
+                        db.commit()
                         logger.info(f"成功存储AI响应: {full_response[:50]}...")
                     except Exception as e:
                         logger.error(f"存储AI响应失败: {str(e)}")
-                        if store_db:
-                            store_db.rollback()
+                        if db:
+                            db.rollback()
                     finally:
-                        if store_db:
-                            store_db.close()
+                        if db:
+                            db.close()
+                
+                # 发送结束标记
+                yield "data: [DONE]\n\n"
                     
             except Exception as e:
                 logger.error(f"流式响应处理出错: {str(e)}")
-                raise
+                yield f"data: [ERROR] {str(e)}\n\n"
+                yield "data: [DONE]\n\n"
 
         return StreamingResponse(
             generate_response(),
-            media_type="text/event-stream"
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
         )
         
+    except Exception as e:
+        logger.error(f"流式聊天接口错误: {str(e)}")
+        # 返回错误响应
+        async def error_response():
+            yield f"data: [ERROR] {str(e)}\n\n"
+            yield "data: [DONE]\n\n"
+        return StreamingResponse(
+            error_response(),
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
     finally:
         db.close()
 
@@ -351,9 +369,12 @@ async def generate_response_stream_with_context(input_text: str, session_id: str
         # 转换为LangChain消息格式
         langchain_messages = []
         for role, content in messages:
-            if role == "user":
+            if role == "user" or role == "human":
                 langchain_messages.append(HumanMessage(content=content))
+            elif role == "assistant" or role == "ai":
+                langchain_messages.append(AIMessage(content=content))
             else:
+                # 系统消息或其他类型
                 langchain_messages.append(AIMessage(content=content))
         
         # 流式生成响应
@@ -361,11 +382,11 @@ async def generate_response_stream_with_context(input_text: str, session_id: str
             content = chunk.content
             if content:
                 yield f"data: {content}\n\n"
-                await asyncio.sleep(0.02)  # 控制流式速度
+                await asyncio.sleep(0.01)  # 控制流式速度
                 
     except Exception as e:
         logger.error(f"生成响应时出错: {str(e)}")
-        yield "data: [ERROR] 生成响应时出错\n\n"
+        yield f"data: [ERROR] {str(e)}\n\n"
     finally:
         db.close()
 

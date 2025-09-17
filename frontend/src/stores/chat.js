@@ -93,7 +93,8 @@ export const useChatStore = defineStore('chat', () => {
     
     try {
       // 调试：打印会话ID
-      console.log('发送消息的会话ID:', chat.id, '类型:', typeof chat.id)
+      console.log(chat)
+      console.log('发送消息的会话ID:', chat.session_id)
       
       // 确保会话ID是字符串类型
       // 注意：我们保留现有的会话ID，不再尝试转换为UUID格式
@@ -115,7 +116,7 @@ export const useChatStore = defineStore('chat', () => {
       console.log('SSE连接已建立')
       
       eventSource.onmessage = (event) => {
-        console.log('收到SSE消息:', event.data)
+        // console.log('收到SSE消息:', event.data)
         
         if (event.data === '[DONE]') {
           console.log('SSE流结束')
