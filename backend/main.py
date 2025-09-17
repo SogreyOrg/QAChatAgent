@@ -56,8 +56,6 @@ class Message(Base):
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI()
-
 # 配置日志
 logger = logging.getLogger("main")
 logger.setLevel(logging.INFO)
@@ -80,6 +78,43 @@ console_handler.setFormatter(logging.Formatter(
 logger.addHandler(file_handler)
 logger.addHandler(console_handler)
 logger.info("日志系统初始化成功")
+
+# 确保pdf_to_markdown模块可以导入
+try:
+    # 直接导入方式
+    from pdf_to_markdown import process_pdf_in_thread
+    logger.info("成功导入 pdf_to_markdown 模块 (直接导入)")
+except ImportError as e:
+    try:
+        # 备用方案：从上级目录导入
+        import sys
+        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from backend.pdf_to_markdown import process_pdf_in_thread
+        logger.info("成功导入 pdf_to_markdown 模块 (绝对路径)")
+    except ImportError:
+        # 最终错误处理
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        error_msg = f"""
+        无法导入 pdf_to_markdown 模块！
+        已尝试：
+        1. 直接导入: from pdf_to_markdown import...
+        2. 绝对路径导入: from backend.pdf_to_markdown import...
+        
+        请检查：
+        1. 文件是否存在: {os.path.join(current_dir, 'pdf_to_markdown.py')}
+        2. 文件内容是否正确
+        当前Python路径: {sys.path}
+        """
+        print(error_msg, file=sys.stderr)
+        sys.stderr.flush()
+        logger.error(error_msg)
+        raise
+
+app = FastAPI(
+    title="QAChatAgent API",
+    description="API服务为前端提供PDF处理和知识库管理功能",
+    version="0.1.0"
+)
 
 # 跨域配置
 app.add_middleware(

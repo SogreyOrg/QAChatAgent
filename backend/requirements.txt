@@ -47,3 +47,4 @@ zhipuai>=2.1.5
 # System requirements (must be installed separately):
 # - poppler (PDF rendering)
 # - tesseract (OCR engine)
+# - CUDA (for GPU acceleration with PaddlePaddle)
