@@ -1,7 +1,7 @@
-# QAChatAgent2 - PDF处理与知识库系统
+# QAChatAgent - PDF处理与知识库系统
 
 ## 项目概述
-QAChatAgent2 是一个集成了 PDF 处理、知识库管理和智能对话功能的 AI 辅助系统。该项目采用前后端分离架构，通过现代化的 Web 界面提供 PDF 文件处理、Markdown 转换、知识库管理和智能对话等功能。
+QAChatAgent 是一个集成了 PDF 处理、知识库管理和智能对话功能的 AI 辅助系统。该项目采用前后端分离架构，通过现代化的 Web 界面提供 PDF 文件处理、Markdown 转换、知识库管理和智能对话等功能。
 
 ## 核心功能
 
@@ -30,7 +30,7 @@ QAChatAgent2 是一个集成了 PDF 处理、知识库管理和智能对话功�
 
 ## 项目结构
 ```
-QAChatAgent2/
+QAChatAgent/
 ├── backend/            # 后端代码
 │   ├── main.py         # 主 API 服务
 │   ├── pdf_to_markdown.py  # PDF 处理核心
@@ -53,7 +53,7 @@ QAChatAgent2/
 ```powershell
 # 克隆项目
 git clone https://github.com/SogreyOrg/QAChatAgent.git
-cd QAChatAgent2
+cd QAChatAgent
 
 # 启动服务 (需预先安装Python和Node.js)
 ./start.ps1

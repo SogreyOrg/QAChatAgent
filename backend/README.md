@@ -1,8 +1,8 @@
-# QAChatAgent2 后端服务
+# QAChatAgent 后端服务
 
 ## 项目简介
 
-QAChatAgent2 后端服务是一个基于 FastAPI 的 API 服务，提供 PDF 处理、知识库管理和智能对话功能。核心功能包括 PDF 文档解析、转换为 Markdown 格式，以及基于知识库的智能问答服务。
+QAChatAgent 后端服务是一个基于 FastAPI 的 API 服务，提供 PDF 处理、知识库管理和智能对话功能。核心功能包括 PDF 文档解析、转换为 Markdown 格式，以及基于知识库的智能问答服务。
 
 ## 目录结构
 
