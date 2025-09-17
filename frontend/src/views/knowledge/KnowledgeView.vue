@@ -137,34 +137,23 @@ const displayPreviewDocument = computed(() => {
     return previewDocumentData.value
   }
 
-  // 批注模式：构建批注文件路径
+  // 批注模式：使用后端返回的savedName构建批注路径
   const originalPath = previewDocumentData.value.path
-  const originalName = previewDocumentData.value.name
-
-  // 构建批注文件名和路径
-  const nameWithoutExt = originalName.substring(0, originalName.lastIndexOf('.'))
+  const savedName = previewDocumentData.value.savedName || previewDocumentData.value.name
+  const nameWithoutExt = savedName.substring(0, savedName.lastIndexOf('.'))
   const annotatedName = `${nameWithoutExt}_annotated.pdf`
-
-  // 构建批注文件的路径
-  let annotatedPath = originalPath
-
-  // 如果路径包含文件名（通常是这种情况），替换文件名部分
-  if (originalPath.includes(previewDocumentData.value.fileKey)) {
-    // 假设文件路径中包含fileKey，我们需要构建新的fileKey
-    const fileKeyParts = previewDocumentData.value.fileKey.split('.')
-    const newFileKey = `${fileKeyParts[0]}_annotated.${fileKeyParts[1]}`
-    annotatedPath = originalPath.replace(previewDocumentData.value.fileKey, newFileKey)
-  } else {
-    // 如果没有fileKey，尝试直接替换文件名
-    annotatedPath = originalPath.replace(
-      originalName.replace(/\s/g, '%20'), // URL中空格可能被编码为%20
-      annotatedName.replace(/\s/g, '%20')
-    )
+  
+  // 构建批注文件的API路径
+  let annotatedPath = originalPath.replace(
+    savedName.replace(/\s/g, '%20'),
+    annotatedName.replace(/\s/g, '%20')
+  )
+  
+  // 确保路径以/api/uploads开头
+  if (!annotatedPath.startsWith('/api/uploads/')) {
+    annotatedPath = `/api/uploads/${annotatedName}`
   }
-
-  console.log('原始路径:', originalPath)
-  console.log('批注路径:', annotatedPath)
-
+  
   return {
     ...previewDocumentData.value,
     name: annotatedName,
