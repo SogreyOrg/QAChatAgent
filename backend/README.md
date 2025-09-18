@@ -88,7 +88,7 @@ conda activate multimodal-rag-pdf
 2. **使用 pip**：
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 ## 环境配置
