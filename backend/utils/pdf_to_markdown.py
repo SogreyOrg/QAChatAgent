@@ -5,42 +5,9 @@ import logging
 import threading
 import io
 from pathlib import Path
+from .logger import logger_init
 
-# 强制标准输出使用UTF-8编码
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-
-# 设置日志
-logger = logging.getLogger("pdf_processor")
-logger.setLevel(logging.INFO)
-
-# 清除现有处理器
-for handler in logger.handlers[:]:
-    logger.removeHandler(handler)
-
-# 文件处理器 - UTF-8编码
-file_handler = logging.FileHandler(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "../logs/pdf_processing.log"),
-    encoding='utf-8'
-)
-file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-
-# 控制台处理器 - 确保每条日志独立输出
-console_handler = logging.StreamHandler(stream=sys.stdout)
-console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
-
-# 添加处理器
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-
-# 强制标准输出和错误输出使用UTF-8编码
-sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
-
-# 禁用重复日志
-logging.getLogger('pikepdf').setLevel(logging.WARNING)
-logging.getLogger('pdfminer').setLevel(logging.WARNING)
-logging.getLogger('unstructured_inference').setLevel(logging.WARNING)
-logging.getLogger('timm').setLevel(logging.WARNING)
+logger = logger_init("pdf_to_markdown")
 
 # 尝试从环境变量获取，否则使用默认路径
 poppler_path = os.getenv("POPPLER_PATH")
@@ -91,7 +58,6 @@ def resolve_pdf_path(pdf_path):
 # 方法1: 使用 langchain_unstructured 加载 PDF
 def load_with_langchain(pdf_path):
     logger.info(f"使用 LangChain UnstructuredLoader 加载 PDF: {pdf_path}")
-    print(f"使用 LangChain UnstructuredLoader 加载 PDF...")
     loader_local = UnstructuredLoader(
         file_path=str(pdf_path),
         strategy="hi_res",  # 高分辨率模式，支持复杂文档
@@ -105,12 +71,12 @@ def load_with_langchain(pdf_path):
     for doc in loader_local.lazy_load():
         docs_local.append(doc)
     
-    print(f"成功加载 {len(docs_local)} 个文档元素")
+    logger.info(f"成功加载 {len(docs_local)} 个文档元素")
     return docs_local
 
 # 方法2: 使用 unstructured 直接处理 PDF
 def process_with_unstructured(pdf_path):
-    print("使用 unstructured 直接处理 PDF...")
+    logger.info("使用 unstructured 直接处理 PDF...")
     # 提取文本/结构化内容
     elements = partition_pdf(
         filename=str(pdf_path),
@@ -121,7 +87,7 @@ def process_with_unstructured(pdf_path):
         poppler_path=poppler_path  # 明确指定 poppler 路径
     )
     
-    print(f"成功提取 {len(elements)} 个文档元素")
+    logger.info(f"成功提取 {len(elements)} 个文档元素")
     return elements
 
 # 可视化函数
@@ -321,12 +287,11 @@ def process_pdf(pdf_path_str):
         # 解析PDF路径
         pdf_path = resolve_pdf_path(pdf_path_str)
         logger.info(f"开始处理PDF: {pdf_path}")
-        print(f"开始处理 PDF: {pdf_path}\n")
+        logger.info(f"开始处理 PDF: {pdf_path}\n")
         
         if not pdf_path.exists():
             error_msg = f"PDF文件不存在: {pdf_path}"
             logger.error(error_msg)
-            print(error_msg)
             return False
             
         # 尝试方法1
@@ -340,14 +305,10 @@ def process_pdf(pdf_path_str):
         extract_images_and_convert_to_markdown(pdf_path, elements)
         
         logger.info(f"PDF处理完成: {pdf_path}")
-        logger.info("")
-        print("PDF 处理完成!")
         return True
     except Exception as e:
         error_msg = f"处理过程中出现错误: {e}"
-        logger.error(error_msg)
-        logger.exception("详细错误信息:")
-        print(error_msg)
+        logger.error(f"详细错误信息:{error_msg}")
         return False
 
 # 在后台线程中处理PDF

@@ -6,7 +6,6 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import AsyncGenerator, Optional, Dict, Any
 import asyncio
-import logging
 import os
 import uuid
 import threading
@@ -31,6 +30,10 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from zhipuai import ZhipuAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from utils.logger import logger_init
+from utils.pdf_to_markdown import process_pdf_in_thread
+
+logger = logger_init("main")
 
 # 加载环境变量
 load_dotenv()
@@ -151,7 +154,7 @@ def invoke_and_save(session_id, input_text):
         config={"configurable": {"session_id": session_id}}
     )["answer"]
 
-    print(f"invoke_and_save:{result}")
+    logger.info(f"invoke_and_save:{result}")
 
     # Save the AI answer with role "ai"
     save_message(session_id, aiRole, result)
@@ -181,66 +184,6 @@ class EmbeddingGenerator:
         if hasattr(response, 'data') and response.data:
             return response.data[0].embedding
         return [0] * 1024  # 如果获取嵌入失败，返回零向量
-
-
-
-
-
-
-# 配置日志
-logger = logging.getLogger("main")
-logger.setLevel(logging.INFO)
-
-# 清除现有处理器
-for handler in logger.handlers[:]:
-    logger.removeHandler(handler)
-
-# 配置日志处理器
-os.makedirs("./logs", exist_ok=True)
-file_handler = logging.FileHandler("./logs/log", encoding='utf-8')
-file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-))
-console_handler = logging.StreamHandler(stream=sys.stdout)
-console_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-))
-logger.addHandler(file_handler)
-logger.addHandler(console_handler)
-logger.info("日志系统初始化成功")
-
-# 确保pdf_to_markdown模块可以导入
-try:
-    # 直接导入方式
-    from utils.pdf_to_markdown import process_pdf_in_thread
-    logger.info("成功导入 pdf_to_markdown 模块 (直接导入)")
-except ImportError as e:
-    try:
-        # 备用方案：从上级目录导入
-        import sys
-        sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from .utils.pdf_to_markdown import process_pdf_in_thread
-        logger.info("成功导入 pdf_to_markdown 模块 (绝对路径)")
-    except ImportError:
-        # 最终错误处理
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        error_msg = f"""
-        无法导入 pdf_to_markdown 模块！
-        已尝试：
-        1. 直接导入: from utils.pdf_to_markdown import...
-        2. 绝对路径导入: from .utils.pdf_to_markdown import...
-        
-        请检查：
-        1. 文件是否存在: {os.path.join(current_dir, 'pdf_to_markdown.py')}
-        2. 文件内容是否正确
-        当前Python路径: {sys.path}
-        """
-        print(error_msg, file=sys.stderr)
-        sys.stderr.flush()
-        logger.error(error_msg)
-        raise
 
 app = FastAPI(
     title="QAChatAgent API",
@@ -295,13 +238,13 @@ def chroma_store_add_docs(collection_name, path):
     chroma_store = get_chroma_store(collection_name)
 
     # # 根据不同文件类型调用不同的文档加载器
-    from .utils.document_loader import load_document
+    from utils.document_loader import load_document
 
     texts = load_document(path)
 
     # 添加文本到 Chroma VectorStore
     IDs = chroma_store.add_texts(texts=texts)
-    print("Added documents with IDs:", IDs)
+    logger.info("Added documents with IDs:", IDs)
 
 def load_chroma_store_retriever(collection_name):
     chroma_store = get_chroma_store(collection_name)
@@ -372,7 +315,7 @@ def invoke_and_save(session_id, input_text, collection_name="default"):
         config={"configurable": {"session_id": session_id}}
     )["answer"]
 
-    print(f"invoke_and_save:{result}")
+    logger.info(f"invoke_and_save:{result}")
 
     # Save the AI answer with role "ai"
     save_message(session_id, aiRole, result)
@@ -407,7 +350,6 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
         #     document_loader_markdown(file_path)
         
         if file_ext.lower() in ['.pdf', '.pdfa', '.pdfx']:
-            from utils.pdf_to_markdown import process_pdf_in_thread
             background_tasks.add_task(process_pdf_in_thread, file_path)
             thread = threading.current_thread()
             return {
