@@ -12,6 +12,7 @@ __pycache__/
 
 # Log files
 *.log
+logs/
 
 # Uploads and temporary files
 uploads/

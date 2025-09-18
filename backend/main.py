@@ -41,11 +41,35 @@ engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# 创建数据库表
-Base.metadata.create_all(bind=engine)
 
 humanRole = "human"
 aiRole = "assistant"
+
+
+# 定义数据库模型
+class Session(Base):
+    """
+    Session 类表示聊天会话
+    """
+    __tablename__ = "sessions"
+    id = Column(Integer, primary_key=True)
+    session_id = Column(String, unique=True, nullable=False)
+    messages = relationship("Message", back_populates="session")
+
+class Message(Base):
+    """
+    Message 类表示会话中的各个消息
+    """
+    __tablename__ = "messages"
+    id = Column(Integer, primary_key=True)
+    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
+    role = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    session = relationship("Session", back_populates="messages")
+
+# 创建数据库表
+Base.metadata.create_all(bind=engine)
 
 def get_db():
     """
@@ -134,28 +158,6 @@ def invoke_and_save(session_id, input_text):
 
     return result
 
-# 定义数据库模型
-class Session(Base):
-    """
-    Session 类表示聊天会话
-    """
-    __tablename__ = "sessions"
-    id = Column(Integer, primary_key=True)
-    session_id = Column(String, unique=True, nullable=False)
-    messages = relationship("Message", back_populates="session")
-
-class Message(Base):
-    """
-    Message 类表示会话中的各个消息
-    """
-    __tablename__ = "messages"
-    id = Column(Integer, primary_key=True)
-    session_id = Column(Integer, ForeignKey("sessions.id"), nullable=False)
-    role = Column(String, nullable=False)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    session = relationship("Session", back_populates="messages")
-
 class EmbeddingGenerator:
     def __init__(self, model_name):
         self.model_name = model_name
@@ -194,7 +196,8 @@ for handler in logger.handlers[:]:
     logger.removeHandler(handler)
 
 # 配置日志处理器
-file_handler = logging.FileHandler("log", encoding='utf-8')
+os.makedirs("./logs", exist_ok=True)
+file_handler = logging.FileHandler("./logs/log", encoding='utf-8')
 file_handler.setFormatter(logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
@@ -211,14 +214,14 @@ logger.info("日志系统初始化成功")
 # 确保pdf_to_markdown模块可以导入
 try:
     # 直接导入方式
-    from pdf_to_markdown import process_pdf_in_thread
+    from utils.pdf_to_markdown import process_pdf_in_thread
     logger.info("成功导入 pdf_to_markdown 模块 (直接导入)")
 except ImportError as e:
     try:
         # 备用方案：从上级目录导入
         import sys
         sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        from backend.pdf_to_markdown import process_pdf_in_thread
+        from .utils.pdf_to_markdown import process_pdf_in_thread
         logger.info("成功导入 pdf_to_markdown 模块 (绝对路径)")
     except ImportError:
         # 最终错误处理
@@ -226,8 +229,8 @@ except ImportError as e:
         error_msg = f"""
         无法导入 pdf_to_markdown 模块！
         已尝试：
-        1. 直接导入: from pdf_to_markdown import...
-        2. 绝对路径导入: from backend.pdf_to_markdown import...
+        1. 直接导入: from utils.pdf_to_markdown import...
+        2. 绝对路径导入: from .utils.pdf_to_markdown import...
         
         请检查：
         1. 文件是否存在: {os.path.join(current_dir, 'pdf_to_markdown.py')}
@@ -404,7 +407,7 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
         #     document_loader_markdown(file_path)
         
         if file_ext.lower() in ['.pdf', '.pdfa', '.pdfx']:
-            from pdf_to_markdown import process_pdf_in_thread
+            from utils.pdf_to_markdown import process_pdf_in_thread
             background_tasks.add_task(process_pdf_in_thread, file_path)
             thread = threading.current_thread()
             return {

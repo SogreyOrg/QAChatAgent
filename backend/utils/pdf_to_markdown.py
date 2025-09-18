@@ -19,7 +19,7 @@ for handler in logger.handlers[:]:
 
 # 文件处理器 - UTF-8编码
 file_handler = logging.FileHandler(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)), "pdf_processing.log"),
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "../logs/pdf_processing.log"),
     encoding='utf-8'
 )
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
