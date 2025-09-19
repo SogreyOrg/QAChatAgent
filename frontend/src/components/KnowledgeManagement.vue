@@ -34,6 +34,7 @@ const knowledgeStore = useKnowledgeStore()
 
 const createNewKnowledgeBase = async () => {
   try {
+    console.log('开始创建新知识库流程');
     const { value: name } = await ElMessageBox.prompt('请输入知识库名称', '新建知识库', {
       confirmButtonText: '确定',
       cancelButtonText: '取消',
@@ -42,10 +43,27 @@ const createNewKnowledgeBase = async () => {
     })
     
     if (name) {
-      knowledgeStore.createKnowledgeBase(name)
+      console.log(`用户输入的知识库名称: ${name}`);
+      try {
+        const newKnowledgeBase = await knowledgeStore.createKnowledgeBase(name, '');
+        console.log('知识库创建结果:', newKnowledgeBase);
+        
+        if (newKnowledgeBase) {
+          // 创建成功后自动选中新创建的知识库
+          knowledgeStore.activeKnowledgeBaseId = newKnowledgeBase.id;
+          ElMessage.success(`知识库 "${name}" 创建成功`);
+        } else {
+          ElMessage.error('创建知识库失败，请稍后重试');
+        }
+      } catch (apiError) {
+        console.error('API调用失败:', apiError);
+        ElMessage.error(`创建知识库失败: ${apiError.message || '未知错误'}`);
+      }
     }
   } catch (error) {
-    console.log('取消创建知识库', error)
+    if (error !== 'cancel') {
+      console.error('创建知识库对话框出错:', error);
+    }
   }
 }
 

@@ -161,8 +161,6 @@ async def delete_document_api(
         logger.error(f"文档删除过程中发生未捕获的异常: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"文档删除失败: {str(e)}")
 
-
-
 # 任务状态查询接口
 @app.get("/api/task/status/{task_id}")
 async def get_task_status(task_id: int) -> Dict[str, Any]:
@@ -297,11 +295,16 @@ async def update_session(session_id: str, session_data: SessionUpdateModel):
 async def api_create_knowledge_base(kb_data: KnowledgeBaseCreateModel):
     """创建知识库"""
     try:
+        logger.info(f"创建知识库请求 - 名称: {kb_data.name}, 描述: {kb_data.description}")
         kb_id = str(uuid.uuid4().hex)
+        logger.info(f"生成知识库ID: {kb_id}")
+        
         kb = create_knowledge_base(kb_id, kb_data.name, kb_data.description)
         if not kb:
+            logger.error(f"创建知识库失败 - ID: {kb_id}, 名称: {kb_data.name}")
             raise HTTPException(status_code=400, detail="创建知识库失败")
         
+        logger.info(f"知识库创建成功 - ID: {kb_id}, 名称: {kb_data.name}")
         return {
             "code": 200,
             "message": "知识库创建成功",
@@ -312,12 +315,14 @@ async def api_create_knowledge_base(kb_data: KnowledgeBaseCreateModel):
             }
         }
     except Exception as e:
+        logger.error(f"创建知识库过程中发生未捕获的异常: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"创建知识库失败: {str(e)}")
 
 @app.delete("/api/knowledge_base/delete/{kb_id}")
 async def api_delete_knowledge_base(kb_id: str):
     """删除知识库"""
     try:
+        logger.info(f"收到删除知识库请求 - ID: {kb_id}")
         if kb_id == "0":
             raise HTTPException(status_code=400, detail="默认知识库不能删除")
             
@@ -340,8 +345,8 @@ async def api_delete_knowledge_base(kb_id: str):
                 "deleted_kb_id": kb_id
             }
         }
-    except HTTPException:
-        raise
+    except HTTPException as e:        
+        raise HTTPException(status_code=500, detail=f"删除知识库失败: {str(e)}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"删除知识库失败: {str(e)}")
 

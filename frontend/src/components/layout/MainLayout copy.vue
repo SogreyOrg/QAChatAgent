@@ -95,39 +95,6 @@
       <router-view />
     </div>
   </div>
-  
-  <!-- 在模板中添加对话框 -->
-  <el-dialog
-    v-model="kbDialogVisible"
-    title="新建知识库"
-    width="500px"
-  >
-    <el-form :model="kbForm" label-width="100px">
-      <el-form-item label="知识库名称" required>
-        <el-input 
-          v-model="kbForm.name" 
-          placeholder="请输入知识库名称"
-        />
-      </el-form-item>
-      <el-form-item label="知识库描述">
-        <el-input
-          v-model="kbForm.description"
-          type="textarea"
-          :rows="3"
-          placeholder="请输入知识库描述（可选）"
-        />
-      </el-form-item>
-    </el-form>
-    <template #footer>
-      <el-button @click="kbDialogVisible = false">取消</el-button>
-      <el-button 
-        type="primary" 
-        @click="handleCreateKb"
-      >
-        创建
-      </el-button>
-    </template>
-  </el-dialog>
 </template>
 
 <script setup>
@@ -137,13 +104,6 @@ import { Plus, Setting } from '@element-plus/icons-vue'
 import { useKnowledgeStore } from '@/stores/knowledge'
 import axios from 'axios'
 import { ElMessage, ElMessageBox, ElLoading, ElNotification } from 'element-plus'
-
-// 在script部分添加响应式数据
-const kbDialogVisible = ref(false)
-const kbForm = ref({
-  name: '',
-  description: ''
-})
 
 const router = useRouter()
 const knowledgeStore = useKnowledgeStore()
@@ -169,36 +129,27 @@ const deleteKnowledgeBase = async (knowledgeBaseId) => {
 
 const createNewKnowledgeBase = async () => {
   try {
-    kbDialogVisible.value = true
+    const { value: name } = await ElMessageBox.prompt('请输入知识库名称', '新建知识库', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputPattern: /\S+/,
+      inputErrorMessage: '知识库名称不能为空'
+    })
+    
+    if (name) {
+      const newKnowledgeBase = await knowledgeStore.createKnowledgeBase(name)
+      if (newKnowledgeBase) {
+        // 创建成功后自动选中新创建的知识库
+        knowledgeStore.activeKnowledgeBaseId = newKnowledgeBase.id
+      }
+    }
   } catch (error) {
-    console.error('打开知识库创建对话框出错:', error)
+    if (error !== 'cancel') {
+      console.error('创建知识库出错:', error)
+    }
   }
 }
 
-// 添加新的知识库创建处理方法
-const handleCreateKb = async () => {
-  try {
-    if (!kbForm.value.name.trim()) {
-      ElMessage.warning('请输入知识库名称')
-      return
-    }
-    
-    const newKnowledgeBase = await knowledgeStore.createKnowledgeBase(
-      kbForm.value.name, 
-      kbForm.value.description
-    )
-    
-    if (newKnowledgeBase) {
-      kbDialogVisible.value = false
-      // 创建成功后自动选中新创建的知识库
-      knowledgeStore.activeKnowledgeBaseId = newKnowledgeBase.id
-      // 重置表单
-      kbForm.value = { name: '', description: '' }
-    }
-  } catch (error) {
-    console.error('创建知识库失败: ' + error.message)
-  }
-}
 const handleKnowledgeBaseSelect = (knowledgeBaseId) => {
   knowledgeStore.activeKnowledgeBaseId = knowledgeBaseId
 }

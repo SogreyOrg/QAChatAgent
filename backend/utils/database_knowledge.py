@@ -137,21 +137,29 @@ class KnowledgeCache:
 knowledge_cache = KnowledgeCache(capacity=50)
 
 # 知识库操作
-@db_operation
-def create_knowledge_base(db: SQLAlchemySession, kb_id: str, name: str, description: str = "") -> Optional[KnowledgeBase]:
+def create_knowledge_base(kb_id: str, name: str, description: str = "") -> Optional[KnowledgeBase]:
     """创建知识库"""
-    try:
-        kb = KnowledgeBase(id=kb_id, name=name, description=description)
-        db.add(kb)
-        db.flush()
-        logger.info(f"创建知识库: {name} (ID: {kb_id})")
-        return kb
-    except IntegrityError:
-        logger.warning(f"知识库 {kb_id} 已存在")
-        return db.query(KnowledgeBase).filter(KnowledgeBase.id == kb_id).first()
-    except Exception as e:
-        logger.error(f"创建知识库失败: {str(e)}")
-        return None
+    with get_db() as db:
+        try:
+            logger.info(f"开始创建知识库 - ID: {kb_id}, 名称: {name}, 描述长度: {len(description)}")
+            # 确保description不是None
+            safe_description = description if description is not None else ""
+            
+            kb = KnowledgeBase(id=kb_id, name=name, description=safe_description)
+            logger.info(f"知识库对象创建成功，准备添加到数据库 - ID: {kb_id}")
+            
+            db.add(kb)
+            logger.info(f"知识库已添加到会话，准备提交 - ID: {kb_id}")
+            
+            db.flush()
+            logger.info(f"创建知识库成功: {name} (ID: {kb_id})")
+            return kb
+        except IntegrityError as e:
+            logger.error(f"知识库 {kb_id} 已存在: {str(e)}")
+            return None
+        except Exception as e:
+            logger.error(f"创建知识库失败: {str(e)}")
+            return None
 
 @db_operation
 def delete_knowledge_base(db: SQLAlchemySession, kb_id: str) -> bool:
