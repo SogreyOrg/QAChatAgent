@@ -14,10 +14,15 @@
 
       <el-scrollbar>
         <el-menu :default-active="activeChatId" @select="handleChatSelect">
-          <el-menu-item v-for="chat in chatSessions" :key="chat.id" :index="chat.id">
+          <el-menu-item 
+            v-for="chat in chatSessions" 
+            :key="chat.session_id" 
+            :index="String(chat.session_id)"
+            @click="handleChatClick(chat)"
+          >
             <template #title>
               <span>{{ chat.title }}</span>
-              <el-button type="danger" size="small" @click.stop="deleteChat(chat.id)">
+              <el-button type="danger" size="small" @click.stop="deleteChat(chat.session_id)">
                 删除
               </el-button>
             </template>
@@ -32,7 +37,7 @@
         <div v-for="message in activeChat.messages" :key="message.id" class="message" :class="message.role">
           <div class="avatar">
             <el-avatar>
-              {{ message.role === 'user' ? '我' : 'AI' }}
+              {{ message.role === 'human' ? '我' : 'AI' }}
             </el-avatar>
           </div>
           <div class="content">
@@ -62,16 +67,65 @@ const chatStore = useChatStore()
 const inputMessage = ref('')
 const messagesRef = ref(null)
 
-const chatSessions = computed(() => chatStore.chatSessions)
-const activeChatId = computed(() => chatStore.activeChatId)
+const chatSessions = computed(() => {
+  console.log('Current chat sessions:', chatStore.chatSessions)
+  return chatStore.chatSessions
+})
+const activeChatId = computed({
+  get: () => {
+    console.log('获取 activeChatId:', chatStore.activeChatId)
+    return chatStore.activeChatId
+  },
+  set: (value) => {
+    console.log('设置 activeChatId:', value)
+    chatStore.activeChatId = value
+  }
+})
 const activeChat = computed(() => chatStore.activeChat())
 
 const createNewChat = () => {
   chatStore.createNewChat()
+  console.log('新建会话后的 activeChatId:', activeChatId.value)
 }
 
 const handleChatSelect = (chatId) => {
-  chatStore.activeChatId = chatId
+  // 这个方法由 el-menu 的 @select 事件触发
+  console.log('handleChatSelect 被调用，chatId:', chatId)
+  if (chatId !== activeChatId.value) {
+    activeChatId.value = chatId
+    console.log('handleChatSelect 设置后的 activeChatId:', activeChatId.value)
+    nextTick(() => {
+      scrollToBottom()
+    })
+  }
+}
+
+const handleChatClick = (chat) => {  
+  const chatId = chat.session_id  
+  // 如果没有有效的ID，则不执行任何操作
+  if (!chatId) {
+    console.error('会话对象没有有效的ID属性')
+    return
+  }
+  
+  // 安全地比较，处理 activeChatId.value 可能为 undefined 的情况
+  if (activeChatId.value === undefined || String(chatId) !== activeChatId.value) {
+    // 这里可以添加会话切换前的业务逻辑
+    console.log(`切换到会话:${chat.title}(${chatId})`)
+    
+    // 更新当前活动会话ID
+    chatStore.activeChatId = chatId
+    
+    // 会话切换后的业务逻辑
+    nextTick(() => {
+      // 确保 activeChat 更新为当前选中的会话
+      console.log('会话已切换，当前会话:', chatStore.activeChat())
+      scrollToBottom()
+    })
+  } else {
+    console.log(`当前会话:${chat.title}(${chatId})`)
+    // 可以添加点击当前会话的业务逻辑
+  }
 }
 
 const deleteChat = async (chatId) => {
@@ -204,7 +258,7 @@ onMounted(() => {
   position: relative;
 }
 
-.message.user {
+.message.human {
   flex-direction: row-reverse;
 }
 
@@ -222,7 +276,7 @@ onMounted(() => {
   max-width: 70%;
 }
 
-.message.user .content {
+.message.human .content {
   align-items: flex-end;
 }
 
@@ -238,7 +292,7 @@ onMounted(() => {
 }
 
 /* 添加AI消息的科技感装饰 */
-.message:not(.user) .text::before {
+.message:not(.human) .text::before {
   content: '';
   position: absolute;
   top: -2px;
@@ -253,7 +307,7 @@ onMounted(() => {
   animation: gradient-shift 3s ease infinite;
 }
 
-.message.user .text {
+.message.human .text {
   background: linear-gradient(135deg, var(--accent-dark), var(--accent-color));
   color: var(--text-primary);
   border: none;

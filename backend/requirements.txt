@@ -1,11 +1,11 @@
 # Core dependencies
-langchain>=0.3.27
-langchain-core>=0.3.76
-langchain-community>=0.3.29
-langchain-text-splitters>=0.3.11
-langchain-unstructured>=0.1.0
-langchainhub>=0.1.21
-langchain-chroma>=0.2.6
+langchain>=0.3.30
+langchain-core>=0.3.80
+langchain-community>=0.3.32
+langchain-text-splitters>=0.3.12
+langchain-unstructured>=0.1.2
+langchainhub>=0.1.22
+langchain-chroma>=0.2.8
 
 # Database & Storage
 chromadb>=1.0.21
@@ -38,11 +38,14 @@ uvicorn>=0.21.0
 python-multipart>=0.0.5
 httpx>=0.28.1
 httpx-sse>=0.4.1
+sse-starlette>=1.6.5
 
 # Utilities
 python-dotenv>=1.1.1
 PyJWT>=2.8.0
 zhipuai>=2.1.5
+pydantic>=2.5.0
+tenacity>=8.2.3
 
 # System requirements (must be installed separately):
 # - poppler (PDF rendering)

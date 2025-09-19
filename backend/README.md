@@ -2,7 +2,7 @@
 
 ## 项目简介
 
-QAChatAgent 后端服务是一个基于 FastAPI 的 API 服务，提供 PDF 处理、知识库管理和智能对话功能。核心功能包括 PDF 文档解析、转换为 Markdown 格式，以及基于知识库的智能问答服务。
+QAChatAgent 后端服务是一个基于 FastAPI 的 API 服务，提供 PDF 处理、知识库管理和智能对话功能。核心功能包括 PDF 文档解析、转换为 Markdown 格式，以及基于知识库的智能问答服务。最新版本增强了上下文感知检索和智能问题重构能力。
 
 ## 目录结构
 
@@ -45,6 +45,13 @@ backend/
 - **历史对话感知**：系统能够理解并参考历史对话内容，生成更连贯的回答
 - **上下文感知检索**：基于历史对话优化知识库检索，提高回答相关性
 - **智能问题重构**：根据对话历史自动重构用户问题，提高检索精度
+- **无相关知识回退**：当知识库中没有相关信息时，优雅降级到通用回答
+
+### 4. 最近更新
+- **增强上下文感知检索**：优化基于历史对话的检索机制
+- **改进智能问题重构**：提高问题理解和重构准确性
+- **优化多会话管理**：增强会话状态管理和持久化
+- **提升系统稳定性**：改进错误处理和日志记录
 
 ## 技术栈
 
@@ -92,6 +99,37 @@ conda activate multimodal-rag-pdf
 
 ```bash
 pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+```
+
+## 启动服务
+
+1. **切换到后端目录**：
+```bash
+cd backend
+```
+
+2. **激活虚拟环境**：
+```bash
+# Windows (PowerShell)
+.\.venv\Scripts\Activate.ps1
+
+# Windows (CMD)
+.\.venv\Scripts\activate.bat
+
+# Linux/MacOS
+source .venv/bin/activate
+```
+
+3. **启动服务**：
+```bash
+# 使用启动脚本
+./start.sh
+
+# 或直接使用 uvicorn
+python main.py
+
+# 或指定主机和端口
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ## 环境配置
@@ -166,37 +204,6 @@ PDF 处理依赖 Poppler，可通过以下方式配置：
 - Markdown 格式的文本文件 (`[文件名].md`)
 - 带批注的 PDF 文件 (`[文件名]_annotated.pdf`)
 - 提取的图片文件 (保存在 `[文件名]/` 目录)
-
-## 启动服务
-
-1. **切换到后端目录**：
-```bash
-cd backend
-```
-
-2. **激活虚拟环境**：
-```bash
-# Windows (PowerShell)
-.\.venv\Scripts\Activate.ps1
-
-# Windows (CMD)
-.\.venv\Scripts\activate.bat
-
-# Linux/MacOS
-source .venv/bin/activate
-```
-
-3. **启动服务**：
-```bash
-# 使用启动脚本
-./start.sh
-
-# 或直接使用 uvicorn
-python main.py
-
-# 或指定主机和端口
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
 
 ## 性能优化
 
