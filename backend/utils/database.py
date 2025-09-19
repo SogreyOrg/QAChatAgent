@@ -80,6 +80,7 @@ class Session(Base):
     Attributes:
         id: 主键ID
         session_id: 会话唯一标识符（字符串）
+        title: 会话标题
         created_at: 会话创建时间
         updated_at: 会话最后更新时间
         messages: 与会话关联的消息列表
@@ -87,6 +88,7 @@ class Session(Base):
     __tablename__ = "sessions"
     id = Column(Integer, primary_key=True)
     session_id = Column(String(64), unique=True, nullable=False, index=True)
+    title = Column(String(255), nullable=False, default="新的会话")
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     messages = relationship("Message", back_populates="session", cascade="all, delete-orphan")
@@ -417,3 +419,34 @@ def list_sessions(db: SQLAlchemySession, limit: int = 100, offset: int = 0) -> L
     except Exception as e:
         logger.error(f"列出会话失败: {str(e)}")
         return []
+
+@db_operation
+def update_session_title(db: SQLAlchemySession, session_id: str, title: str) -> bool:
+    """
+    更新会话标题。
+    
+    Args:
+        db: 数据库会话
+        session_id: 会话ID
+        title: 新的会话标题
+        
+    Returns:
+        bool: 操作是否成功
+    """
+    try:
+        if not session_id or not title:
+            logger.warning("会话ID或标题为空")
+            return False
+            
+        session = db.query(Session).filter(Session.session_id == session_id).first()
+        if not session:
+            logger.warning(f"尝试更新不存在的会话: {session_id}")
+            return False
+            
+        session.title = title
+        db.flush()
+        logger.info(f"更新会话标题: {session_id} -> {title}")
+        return True
+    except Exception as e:
+        logger.error(f"更新会话标题失败: {str(e)}")
+        return False

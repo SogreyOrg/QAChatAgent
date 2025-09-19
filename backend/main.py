@@ -1,9 +1,10 @@
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, UploadFile, File, HTTPException, BackgroundTasks, Body
+from fastapi.responses import StreamingResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from typing import AsyncGenerator, Optional, Dict, Any
+from pydantic import BaseModel
 import os
 import uuid
 import threading
@@ -11,7 +12,7 @@ from dotenv import load_dotenv
 
 from utils.logger import logger_init
 from utils.pdf_to_markdown import process_pdf_in_thread
-from utils.database import get_db, save_message, get_session_history, load_session_history, Session, Message
+from utils.database import get_db, save_message, get_session_history, load_session_history, update_session_title, Session, Message
 from utils.chroma_store import load_chroma_store_retriever
 from utils.rag_chat import generate_rag_response_stream_with_context
 from utils._config import humanRole, aiRole
@@ -202,6 +203,36 @@ async def stream_chat_response(session_id: str, message: str, collection_name: s
                 "X-Accel-Buffering": "no"
             }
         )
+
+# 定义请求模型
+class SessionUpdateModel(BaseModel):
+    title: str
+
+# 会话标题更新接口
+@app.put("/api/session/{session_id}")
+async def update_session(session_id: str, session_data: SessionUpdateModel):
+    """更新会话信息，如标题"""
+    try:
+        logger.info(f"更新会话: {session_id}, 标题: {session_data.title}")
+        
+        # 更新会话标题
+        success = update_session_title(session_id, session_data.title)
+        
+        if success:
+            return {
+                "code": 200,
+                "message": "会话更新成功",
+                "data": {
+                    "session_id": session_id,
+                    "title": session_data.title
+                }
+            }
+        else:
+            raise HTTPException(status_code=404, detail=f"会话 {session_id} 不存在或更新失败")
+            
+    except Exception as e:
+        logger.error(f"更新会话失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"更新会话失败: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
