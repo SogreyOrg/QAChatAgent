@@ -1,6 +1,16 @@
 import os
 import functools
 from contextlib import contextmanager
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
+from sqlalchemy.sql.schema import Column
 from typing import List, Dict, Optional, Generator, Any, Callable, TypeVar, cast
 
 from sqlalchemy import create_engine, Column, String, Text, DateTime, Integer, ForeignKey, Index
@@ -86,11 +96,11 @@ class Session(Base):
         messages: 与会话关联的消息列表
     """
     __tablename__ = "sessions"
-    id = Column(Integer, primary_key=True)
-    session_id = Column(String(64), unique=True, nullable=False, index=True)
-    title = Column(String(255), nullable=False, default="新的会话")
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    id: Column[int] = Column(Integer, primary_key=True)
+    session_id: Column[str] = Column(String(64), unique=True, nullable=False, index=True)
+    title: Column[str] = Column(String(255), nullable=False, default="新的会话")
+    created_at: Column[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Column[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     messages = relationship("Message", back_populates="session", cascade="all, delete-orphan")
 
 class Message(Base):
@@ -106,11 +116,11 @@ class Message(Base):
         session: 关联的会话对象
     """
     __tablename__ = "messages"
-    id = Column(Integer, primary_key=True)
-    session_id = Column(String(64), ForeignKey("sessions.session_id"), nullable=False)
-    role = Column(String(20), nullable=False)
-    content = Column(Text, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    id: Column[int] = Column(Integer, primary_key=True)
+    session_id: Column[str] = Column(String(64), ForeignKey("sessions.session_id"), nullable=False)
+    role: Column[str] = Column(String(20), nullable=False)
+    content: Column[str] = Column(Text, nullable=False)
+    created_at: Column[datetime] = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     session = relationship("Session", back_populates="messages")
     
     # 添加索引以提高查询性能
@@ -438,12 +448,13 @@ def update_session_title(db: SQLAlchemySession, session_id: str, title: str) -> 
             logger.warning("会话ID或标题为空")
             return False
             
-        session = db.query(Session).filter(Session.session_id == session_id).first()
+        session: Session = db.query(Session).filter(Session.session_id == session_id).first()
         if not session:
             logger.warning(f"尝试更新不存在的会话: {session_id}")
             return False
             
-        session.title = title
+        # 使用 setattr 方法来避免类型检查错误
+        setattr(session, "title", title)
         db.flush()
         logger.info(f"更新会话标题: {session_id} -> {title}")
         return True

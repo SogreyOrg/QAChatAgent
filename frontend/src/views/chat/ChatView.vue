@@ -21,7 +21,16 @@
             @click="handleChatClick(chat)"
           >
             <template #title>
-              <span>{{ chat.title }}</span>
+              <el-input
+                v-if="editingSessionId === chat.session_id"
+                v-model="editingTitle"
+                size="small"
+                @blur="saveTitle(chat)"
+                @keyup.enter="saveTitle(chat)"
+              />
+              <span v-else @dblclick="startEditTitle(chat)">
+                {{ chat.title }}
+              </span>
               <el-button type="danger" size="small" @click.stop="deleteChat(chat.session_id)">
                 删除
               </el-button>
@@ -62,10 +71,13 @@
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
+import { ElMessage } from 'element-plus'
 
 const chatStore = useChatStore()
 const inputMessage = ref('')
 const messagesRef = ref(null)
+const editingSessionId = ref(null)
+const editingTitle = ref('')
 
 const chatSessions = computed(() => {
   console.log('Current chat sessions:', chatStore.chatSessions)
@@ -125,6 +137,83 @@ const handleChatClick = (chat) => {
   } else {
     console.log(`当前会话:${chat.title}(${chatId})`)
     // 可以添加点击当前会话的业务逻辑
+  }
+}
+
+const startEditTitle = (chat) => {
+  editingSessionId.value = chat.session_id
+  editingTitle.value = chat.title
+}
+
+const saveTitle = async (chat) => {
+  if (!editingTitle.value.trim()) {
+    editingSessionId.value = null
+    return
+  }
+
+  // 如果标题没有变化，直接退出编辑模式
+  if (chat.title === editingTitle.value) {
+    editingSessionId.value = null
+    return
+  }
+
+  // 保存原始标题以便回滚
+  const originalTitle = chat.title
+  const sessionId = chat.session_id
+
+  try {
+    // 先检查会话是否存在
+    const sessionExists = chatStore.chatSessions.some(s => s.session_id === sessionId)
+    if (!sessionExists) {
+      throw new Error('会话不存在')
+    }
+
+    // 调用后端API更新标题
+    const response = await fetch(`/api/session/update/${sessionId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: editingTitle.value
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      const errorMsg = errorData.detail || '更新标题失败'
+      
+      // 如果会话不存在，从列表中移除
+      if (response.status === 404) {
+        chatStore.deleteChat(sessionId)
+      } else {
+        // 恢复原始标题
+        const index = chatStore.chatSessions.findIndex(s => s.session_id === sessionId)
+        if (index !== -1) {
+          chatStore.chatSessions[index].title = originalTitle
+        }
+      }
+      
+      throw new Error(errorMsg)
+    }
+
+    const result = await response.json()
+    
+    // 更新前端存储
+    const index = chatStore.chatSessions.findIndex(s => s.session_id === sessionId)
+    if (index !== -1) {
+      chatStore.chatSessions[index].title = editingTitle.value
+    }
+    editingSessionId.value = null
+    ElMessage.success(result.message || '标题更新成功')
+  } catch (error) {
+    console.error('更新标题失败:', {
+      sessionId,
+      error: error.message,
+      stack: error.stack
+    })
+    editingSessionId.value = null
+    ElMessage.error(`更新标题失败: ${error.message}`)
   }
 }
 

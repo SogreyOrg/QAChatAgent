@@ -209,7 +209,7 @@ class SessionUpdateModel(BaseModel):
     title: str
 
 # 会话标题更新接口
-@app.put("/api/session/{session_id}")
+@app.put("/api/session/update/{session_id}")
 async def update_session(session_id: str, session_data: SessionUpdateModel):
     """更新会话信息，如标题"""
     try:
