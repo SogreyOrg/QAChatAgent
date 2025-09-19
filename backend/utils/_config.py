@@ -1,0 +1,2 @@
+humanRole = "human"
+aiRole = "assistant"

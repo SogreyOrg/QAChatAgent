@@ -1,10 +1,9 @@
 import os
 import logging
 from typing import List, Optional, Union
+from .logger import logger_init
 
-# 配置日志
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
+logger = logger_init("document_loader")
 
 def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[str]:
     """

@@ -25,5 +25,4 @@ def logger_init(tag:str):
     ))
     logger.addHandler(file_handler)
     logger.addHandler(console_handler)
-    logger.info("日志系统初始化成功")
     return logger
