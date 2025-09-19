@@ -19,10 +19,12 @@ from sqlalchemy.exc import SQLAlchemyError, IntegrityError, OperationalError
 from datetime import datetime, timezone
 from .logger import logger_init
 
-logger = logger_init("database")
+logger = logger_init("database_chat")
+
+os.makedirs("dbs", exist_ok=True)
 
 # 数据库配置
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./chat.db")
+SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./dbs/chat.db")
 MAX_MESSAGES_PER_SESSION = int(os.getenv("MAX_MESSAGES_PER_SESSION", "100"))
 
 # 创建数据库引擎，添加连接池配置

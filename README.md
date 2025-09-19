@@ -47,14 +47,14 @@ QAChatAgent 是一个基于 AI 的智能问答系统，提供 PDF 文档处理�
 
 1. 克隆仓库：
 ```bash
-git clone https://github.com/赋范AI/QAChatAgent.git
+git clone https://github.com/SogreyOrg/QAChatAgent.git
 cd QAChatAgent
 ```
 
 2. 启动后端服务：
 ```bash
 cd backend
-pip install -r requirements.txt
+pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 python main.py
 ```
 

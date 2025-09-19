@@ -174,7 +174,7 @@ const documents = computed(() => {
   // 过滤掉空文档列表的初始数据
   const docs = knowledgeStore.activeDocuments()
   return docs
-    .filter(doc => doc.id !== '101' && doc.id !== '102' && doc.id !== '103' && doc.id !== '104' && doc.id !== '105')
+    .filter(doc => doc.id !== '')
     .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))
 })
 
@@ -215,6 +215,10 @@ const uploadDocument = async () => {
   try {
     const formData = new FormData()
     formData.append('file', selectedFile.value)
+    // 添加当前知识库ID
+    if (activeKnowledgeBaseId.value) {
+      formData.append('kb_id', activeKnowledgeBaseId.value)
+    }
 
     const response = await axios.post(
       'http://localhost:8000/api/upload',
@@ -231,8 +235,11 @@ const uploadDocument = async () => {
       }
     )
 
+    console.log('上传成功:', response.data)
+
     // 保存完整文件信息到知识库
     const documentData = {
+      docId: response.data.data.docId,
       name: response.data.data.originalName,
       path: response.data.data.filePath,
       savedName: response.data.data.savedName,
@@ -267,15 +274,18 @@ const deleteDocument = async (documentId) => {
     const doc = documents.value.find(d => d.id === documentId)
     if (!doc) throw new Error('文档不存在')
 
-    // 使用fileKey或savedName删除文件
-    const fileIdentifier = doc.fileKey || doc.savedName
-    if (fileIdentifier) {
+    // 使用知识库id+文件id删除文件
+    if (doc.id && activeKnowledgeBaseId.value) {
       try {
-        const encodedName = encodeURIComponent(fileIdentifier)
-        await axios.delete(`http://localhost:8000/api/delete/${encodedName}`)
+        await axios.delete(
+          `http://localhost:8000/api/delete/${activeKnowledgeBaseId.value}/${doc.id}`
+        )
       } catch (error) {
         console.error('文件删除失败:', error)
+        ElMessage.error('文件删除失败')
       }
+    } else {
+      ElMessage.warning('请选择知识库或文件')
     }
 
     // 从知识库删除记录

@@ -12,7 +12,17 @@ from dotenv import load_dotenv
 
 from utils.logger import logger_init
 from utils.pdf_to_markdown import process_pdf_in_thread
-from utils.database import get_db, save_message, get_session_history, load_session_history, update_session_title, Session, Message
+from utils.database_chat import get_db, save_message, get_session_history, load_session_history, update_session_title, Session, Message
+from utils.database_knowledge import (
+    create_knowledge_base,
+    delete_knowledge_base,
+    list_knowledge_bases,
+    get_knowledge_base,
+    add_document,
+    delete_document,
+    list_documents,
+    get_document
+)
 from utils.chroma_store import load_chroma_store_retriever
 from utils.rag_chat import generate_rag_response_stream_with_context
 from utils._config import humanRole, aiRole
@@ -43,12 +53,20 @@ os.makedirs("./uploads", exist_ok=True)
 # 静态文件服务
 app.mount("/api/uploads", StaticFiles(directory="./uploads"), name="uploads")
 
-# 文件上传接口
+# 文件上传接口（支持知识库文档上传）
 @app.post("/api/upload")
-async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File(...)):
+async def upload_file(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    kb_id: Optional[str] = Body(None, embed=True)
+):
+    """文件上传接口，支持关联知识库"""
+    logger.info(f"上传文件：{file.filename} - 知识库ID：{kb_id if kb_id else '未指定'}")
     try:
         upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
         os.makedirs(upload_dir, exist_ok=True)
+
+        logger.info(f"上传文件：{file.filename} - 知识库ID：{kb_id}")
         
         original_name = file.filename or "file"
         file_ext = os.path.splitext(original_name)[1] or ".bin"
@@ -61,12 +79,32 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
         
         file_size = os.path.getsize(file_path)
 
-        # if file_ext.lower() in ['.md']:
-        #     document_loader_markdown(file_path)
-        
+        # 处理PDF文件
+        annotated_path = ""
+        md_path = ""
+        thread = None
         if file_ext.lower() in ['.pdf', '.pdfa', '.pdfx']:
             background_tasks.add_task(process_pdf_in_thread, file_path)
+            annotated_path = f"/api/uploads/{os.path.splitext(unique_filename)[0]}_annotated.pdf"
+            md_path = f"/api/uploads/{os.path.splitext(unique_filename)[0]}.md"
             thread = threading.current_thread()
+            
+        # 如果传入了知识库ID，则添加到知识库文档表
+        doc_id = str(uuid.uuid4().hex)
+        if kb_id and kb_id.strip():  # 确保kb_id不是空字符串
+            logger.info(f"将文件关联到知识库：{kb_id}")
+            add_document(
+                doc_id=doc_id,
+                kb_id=kb_id,
+                name=original_name,
+                saved_name=unique_filename,
+                path=f"/api/uploads/{unique_filename}",
+                size=file_size,
+                annotated_path=annotated_path,
+                md_path=md_path
+            )
+        
+        if file_ext.lower() in ['.pdf', '.pdfa', '.pdfx']:
             return {
                 "code": 200,
                 "message": "文件上传成功，PDF处理中",
@@ -76,7 +114,8 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
                     "filePath": f"/api/uploads/{unique_filename}",
                     "size": file_size,
                     "processing": True,
-                    "taskId": thread.ident
+                    "taskId": thread.ident,
+                    "docId": doc_id
                 }
             }
         
@@ -87,37 +126,42 @@ async def upload_file(background_tasks: BackgroundTasks, file: UploadFile = File
                 "originalName": file.filename,
                 "savedName": unique_filename,
                 "filePath": f"/api/uploads/{unique_filename}",
-                "size": file_size
+                "size": file_size,
+                "docId": doc_id
             }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"文件上传失败: {str(e)}")
 
-# 文件删除接口
-@app.delete("/api/delete/{filename}")
-async def delete_file(filename: str):
+# 文档删除接口（通过知识库ID和文档ID）
+@app.delete("/api/delete/{kb_id}/{doc_id}")
+async def delete_document_api(
+    kb_id: str,
+    doc_id: str
+):
+    """删除知识库文档"""
     try:
-        from urllib.parse import unquote
-        upload_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "uploads"))
-        decoded_filename = unquote(filename)
-        file_path = os.path.join(upload_dir, decoded_filename)
+        logger.info(f"开始删除文档 - 知识库ID: {kb_id}, 文档ID: {doc_id}")
         
-        if not os.path.abspath(file_path).startswith(upload_dir):
-            raise HTTPException(status_code=400, detail="非法文件路径")
+        # 调用delete_document处理所有操作（包括验证和删除）
+        if not delete_document(doc_id, kb_id=kb_id):
+            logger.error(f"删除文档失败: {doc_id}")
+            raise HTTPException(status_code=500, detail="删除文档失败")
             
-        if not os.path.exists(file_path):
-            raise HTTPException(status_code=404, detail="文件不存在")
-            
-        os.remove(file_path)
+        logger.info(f"成功删除文档: {doc_id}")
         return {
             "code": 200,
-            "message": "文件删除成功",
+            "message": "文档删除成功",
             "data": {
-                "deletedFile": filename
+                "deleted_doc_id": doc_id,
+                "knowledge_base_id": kb_id
             }
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"文件删除失败: {str(e)}")
+        logger.error(f"文档删除过程中发生未捕获的异常: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"文档删除失败: {str(e)}")
+
+
 
 # 任务状态查询接口
 @app.get("/api/task/status/{task_id}")
@@ -208,6 +252,19 @@ async def stream_chat_response(session_id: str, message: str, collection_name: s
 class SessionUpdateModel(BaseModel):
     title: str
 
+class KnowledgeBaseCreateModel(BaseModel):
+    name: str
+    description: str = ""
+
+class DocumentUploadModel(BaseModel):
+    knowledge_base_id: str
+    name: str
+    saved_name: str
+    path: str
+    size: int
+    annotated_path: str = ""
+    md_path: str = ""
+
 # 会话标题更新接口
 @app.put("/api/session/update/{session_id}")
 async def update_session(session_id: str, session_data: SessionUpdateModel):
@@ -233,6 +290,60 @@ async def update_session(session_id: str, session_data: SessionUpdateModel):
     except Exception as e:
         logger.error(f"更新会话失败: {str(e)}")
         raise HTTPException(status_code=500, detail=f"更新会话失败: {str(e)}")
+
+# 删除原知识库文档上传和删除接口
+# 知识库管理API
+@app.post("/api/knowledge_base/create")
+async def api_create_knowledge_base(kb_data: KnowledgeBaseCreateModel):
+    """创建知识库"""
+    try:
+        kb_id = str(uuid.uuid4().hex)
+        kb = create_knowledge_base(kb_id, kb_data.name, kb_data.description)
+        if not kb:
+            raise HTTPException(status_code=400, detail="创建知识库失败")
+        
+        return {
+            "code": 200,
+            "message": "知识库创建成功",
+            "data": {
+                "id": kb_id,
+                "name": kb_data.name,
+                "description": kb_data.description
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"创建知识库失败: {str(e)}")
+
+@app.delete("/api/knowledge_base/delete/{kb_id}")
+async def api_delete_knowledge_base(kb_id: str):
+    """删除知识库"""
+    try:
+        if kb_id == "0":
+            raise HTTPException(status_code=400, detail="默认知识库不能删除")
+            
+        # 检查知识库是否有文档
+        docs = list_documents(kb_id)
+        if docs:
+            raise HTTPException(
+                status_code=400,
+                detail="知识库中仍有文档，请先删除所有文档后再删除知识库"
+            )
+            
+        success = delete_knowledge_base(kb_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="知识库不存在")
+            
+        return {
+            "code": 200,
+            "message": "知识库删除成功",
+            "data": {
+                "deleted_kb_id": kb_id
+            }
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"删除知识库失败: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

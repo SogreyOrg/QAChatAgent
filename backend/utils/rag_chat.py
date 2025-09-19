@@ -7,7 +7,7 @@ from typing import List, Generator, Any, Optional
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
 
 from langchain_community.chat_models import ChatZhipuAI
-from .database import get_session_history, Message
+from .database_chat import get_session_history, Message
 from ._config import humanRole, aiRole
 from .logger import logger_init
 from .chroma_store import load_chroma_store_retriever
