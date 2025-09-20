@@ -67,7 +67,7 @@ def convert_db_messages_to_langchain_messages(session_id:str) -> list[BaseMessag
 async def generate_rag_response_stream_with_context(
     input_text: str, 
     session_id: str, 
-    collection_name: str = "default"
+    kb_id: str = "0"
 ) :
     """
     生成基于RAG的流式响应，包含上下文感知。
@@ -75,7 +75,7 @@ async def generate_rag_response_stream_with_context(
     Args:
         input_text: 用户输入文本
         session_id: 会话ID
-        collection_name: 知识库集合名称，默认为"default"
+        kb_id: 知识库集合id，默认为"0" 默认系统知识库
         
     Yields:
         str: 流式响应文本块
@@ -87,19 +87,22 @@ async def generate_rag_response_stream_with_context(
         
     try:
         chat = get_chat()
-        logger.info(f"处理会话 {session_id} 的请求，知识库: {collection_name}")
+        logger.info(f"处理会话 {session_id} 的请求，知识库: {kb_id}")
             
         # 转换为langchain消息
         langchain_history: list[BaseMessage] = convert_db_messages_to_langchain_messages(session_id=session_id)
+        logger.info(f"检索到{len(langchain_history)}条历史消息。")
 
         # 加载知识库检索器
-        retriever: VectorStoreRetriever = load_chroma_store_retriever(collection_name)
+        retriever: VectorStoreRetriever = load_chroma_store_retriever(kb_id)
         
         # 创建上下文感知的问题（中文版本）
         contextualize_q_system_prompt = """根据聊天历史和最新的用户问题，
         该问题可能引用了聊天历史中的上下文，请重新构建一个独立的问题，
         使其在没有聊天历史的情况下也能被理解。请不要回答问题，
-        只需在必要时重新构建问题，否则原样返回。"""
+        只需在必要时重新构建问题，否则原样返回原始问题。
+        如果无法理解或重构问题，请直接返回原始问题。
+        不要添加任何解释、评论或额外内容。"""
         
         # 使用上下文感知检索器
         standalone_question = await chat.ainvoke(
@@ -110,14 +113,33 @@ async def generate_rag_response_stream_with_context(
             ]
         )
         
-        logger.info(f"重构后的问题: {standalone_question.content}")
+        # 检查重构后的问题是否有效
+        reconstructed_question = standalone_question.content.strip() if isinstance(standalone_question.content, str) else input_text
+        if not reconstructed_question or reconstructed_question.lower() == "不知道":
+            logger.warning(f"问题重构失败，使用原始问题: {input_text}")
+            reconstructed_question = input_text
         
-        # 检索相关文档
-        docs = retriever.invoke(standalone_question.content)
+        logger.info(f"重构后的问题: {reconstructed_question}")
+        
+        # # 检索相关文档
+        # docs = retriever.invoke(reconstructed_question)
+        # 检索时会返回带 score 的文档
+        docs = retriever.invoke(reconstructed_question)
         logger.info(f"检索到 {len(docs)} 个相关文档")
+
+        for i, doc in enumerate(docs):
+            score = doc.metadata.get("score")
+            
+            logger.info(f"文档 {i+1} 内容: {doc.page_content[:200]}...")  # 记录前200个字符
+            logger.info(f"文档 {i+1} 元数据: {doc.metadata}")
+            logger.info(f"文档 {i+1} 相似度分数: {score if score is not None else '未知'}")
         
-        # 构建系统提示，包含检索到的上下文
-        context_text = "\n\n".join([doc.page_content for doc in docs])
+        # 构建系统提示，包含检索到的上下文（添加相似度分数）
+        context_text = "\n\n".join([
+            f"文档 {i+1} (相似度: {doc.metadata.get('score')}):\n{doc.page_content}" 
+            for i, doc in enumerate(docs)
+        ])
+        logger.info(f"合并后的上下文总长度: {len(context_text)}")
         
         # 检查是否有相关上下文
         if not context_text.strip():
@@ -152,11 +174,16 @@ async def generate_rag_response_stream_with_context(
         
         # 流式生成响应
         logger.info("开始生成流式响应")
+        full_response = ""
         async for chunk in chat.astream(final_messages):
             content = chunk.content
             if content:
+                full_response += str(content)
                 yield f"data: {content}\n\n"
                 await asyncio.sleep(STREAM_DELAY)  # 使用可配置的延迟时间
+        
+        # 打印完整响应内容用于调试
+        logger.info(f"完整响应内容:\n{full_response}")
 
     except Exception as e:
         logger.error(f"生成RAG响应时出错: {str(e)}", exc_info=True)

@@ -43,6 +43,100 @@ QAChatAgent 是一个基于 AI 的智能问答系统，提供 PDF 文档处理�
 - Element Plus
 - Axios
 
+## 系统架构总览
+
+```mermaid
+graph LR
+    subgraph 前端
+        A[Vue 3 UI] --> B[Pinia Store]
+        B --> C[API Service]
+    end
+    
+    subgraph 后端
+        D[FastAPI] --> E[Knowledge Base]
+        D --> F[Session Manager]
+        D --> G[Document Processor]
+        E --> H[(Knowledge DB)]
+        F --> I[(Session DB)]
+        G --> J[(File Storage)]
+    end
+    
+    C --> D
+```
+
+## 核心模块管理
+
+| 模块类型       | 组件                | 技术栈               | 主要功能                     |
+|----------------|---------------------|----------------------|----------------------------|
+| **前端模块**   | UI框架              | Vue 3 + Element Plus | 用户界面渲染与交互          |
+|                | 状态管理            | Pinia                | 应用状态集中管理            |
+|                | API通信             | Axios                | 前后端数据交互              |
+| **后端模块**   | API服务             | FastAPI              | RESTful接口提供             |
+|                | 知识库管理          | SQLAlchemy           | 知识库CRUD操作              |
+|                | 文档处理            | PyMuPDF + PaddleOCR  | 文档解析与内容提取          |
+|                | 向量搜索            | ChromaDB             | 语义搜索与相似度计算        |
+| **数据存储**   | 知识库存储          | SQLite/PostgreSQL    | 知识库元数据存储            |
+|                | 会话历史            | SQLite               | 聊天记录持久化              |
+|                | 文件存储            | 本地文件系统         | 上传文档存储                |
+
+## 完整执行流程图
+
+```mermaid
+flowchart TB
+    Start[用户操作] --> A{操作类型}
+    A -->|上传文档| B[文件上传处理]
+    A -->|知识库管理| C[知识库CRUD]
+    A -->|对话查询| D[语义搜索]
+    
+    B --> E[文档解析] --> F[内容提取] --> G[向量化存储]
+    C --> H[数据库操作] --> I[状态同步]
+    D --> J[检索增强生成] --> K[流式响应]
+    
+    G & I & K --> L[前端更新]
+```
+
+## 关键时序图
+
+### 文档上传处理时序
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant OCR
+    participant VectorDB
+    
+    User->>Frontend: 选择文档
+    Frontend->>Backend: 上传文件
+    Backend->>OCR: 提取文本/图片
+    OCR-->>Backend: 结构化数据
+    Backend->>VectorDB: 存储向量
+    VectorDB-->>Backend: 存储结果
+    Backend-->>Frontend: 处理状态
+    Frontend-->>User: 显示结果
+```
+
+### 智能问答时序
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant Backend
+    participant LLM
+    participant VectorDB
+    
+    User->>Frontend: 输入问题
+    Frontend->>Backend: 发送查询
+    Backend->>VectorDB: 语义搜索
+    VectorDB-->>Backend: 相关片段
+    Backend->>LLM: 生成回答
+    LLM-->>Backend: 流式响应
+    Backend-->>Frontend: 分块传输
+    Frontend-->>User: 实时显示
+```
+
 ## 快速开始
 
 1. 克隆仓库：

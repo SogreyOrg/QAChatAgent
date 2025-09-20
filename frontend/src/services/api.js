@@ -35,16 +35,4 @@ api.interceptors.response.use(
   }
 )
 
-// 聊天相关API
-export const chatApi = {
-  // 发送聊天消息
-  sendMessage: (sessionId, message, datetime) => {
-    return api.post('/api/chat/message', {
-      session_id: sessionId,
-      message,
-      datetime
-    })
-  }
-}
-
 export default api

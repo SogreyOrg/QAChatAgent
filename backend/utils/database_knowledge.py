@@ -1,3 +1,54 @@
+"""
+存储知识库：knowledge.db, "sqlite:///./dbs/chat.db"
+
+有两张表：
+- knowledgeBases 知识库表，存储知识库信息，包括：
+{
+  "createdAt": "2025-09-19T16:21:17.824Z",
+  "description": "",
+  "id": "1758298877824",
+  "name": "1"
+}
+
+- documents 文档表，存储上传文档相关信息，包括：
+[
+  {
+    "id": "1758300116415",
+    "name": "pdf_page1.png",
+    "path": "/api/uploads/6aa7c7296650429084fef89092bd52ba.png", 
+    "annotatedPath": "",
+    "mdPath": "",
+    "savedName": "6aa7c7296650429084fef89092bd52ba.png",
+    "size": 448592,
+    "uploadedAt": "2025-09-19T16:41:56.415Z"
+  },
+  {
+    "id": "1758300124705",
+    "name": "0.LangChain技术生态介绍.pdf",
+    "path": "/api/uploads/9b1f9c1097f44d05b297a14bc213e32e.pdf",
+    "annotatedPath": "/api/uploads/9b1f9c1097f44d05b297a14bc213e32e_annotated.pdf",
+    "mdPath": "/api/uploads/9b1f9c1097f44d05b297a14bc213e32e.md",
+    "savedName": "9b1f9c1097f44d05b297a14bc213e32e.pdf",
+    "size": 9294271,
+    "uploadedAt": "2025-09-19T16:42:04.705Z"
+  },
+  {
+    "id": "1758300133599",
+    "name": "2.各类模型接入LangChain流程.md",
+    "path": "/api/uploads/71b6a3441adb4152820f14adbfd6509a.md",
+    "annotatedPath": "",
+    "mdPath": "",
+    "savedName": "71b6a3441adb4152820f14adbfd6509a.md",
+    "size": 64233,
+    "uploadedAt": "2025-09-19T16:42:13.599Z"
+  }
+]
+
+其中： annotatedPath 和 mdPath 目前只有pdf格式文件才有，其他格式文件字段留空。
+- annotatedPath 是pdf 文件经过 backend/utils/pdf_to_markdown.py 处理后的带批注的pdf文件，文件命名是原文件名后加`_annotated`的pdf文件
+- mdPath 也是pdf 文件经过 backend/utils/pdf_to_markdown.py 处理后的markdown文件，包含pdf中的文本图像信息，文件命名与原pdf同名
+"""
+
 import os
 import functools
 from contextlib import contextmanager
@@ -339,9 +390,9 @@ def update_document_paths(
             return False
             
         if annotated_path is not None:
-            doc.annotated_path = annotated_path if annotated_path is not None else ""  # type: ignore[assignment]
+            setattr(doc, "annotated_path", annotated_path)  # 使用setattr避免类型错误
         if md_path is not None:
-            doc.md_path = md_path if md_path is not None else ""  # type: ignore[assignment]
+            setattr(doc, "md_path", md_path)  # 使用setattr避免类型错误
             
         db.flush()
         knowledge_cache.invalidate(str(doc.knowledge_base_id))

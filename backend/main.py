@@ -23,7 +23,7 @@ from utils.database_knowledge import (
     list_documents,
     get_document
 )
-from utils.chroma_store import load_chroma_store_retriever
+from utils.chroma_store import load_chroma_store_retriever, chroma_store_add_docs
 from utils.rag_chat import generate_rag_response_stream_with_context
 from utils._config import humanRole, aiRole
 
@@ -53,6 +53,22 @@ os.makedirs("./uploads", exist_ok=True)
 # 静态文件服务
 app.mount("/api/uploads", StaticFiles(directory="./uploads"), name="uploads")
 
+# 处理文档向量化的后台任务函数
+def process_document_for_vector_db(file_path: str, kb_id: str):
+    """
+    处理文档并将其添加到向量数据库
+    
+    Args:
+        file_path: 文件路径
+        kb_id: 知识库ID
+    """
+    try:
+        logger.info(f"开始处理文档向量化 - 文件: {file_path}, 知识库ID: {kb_id}")
+        chroma_store_add_docs(kb_id, file_path)
+        logger.info(f"文档向量化处理完成 - 文件: {file_path}, 知识库ID: {kb_id}")
+    except Exception as e:
+        logger.error(f"文档向量化处理失败: {str(e)}", exc_info=True)
+
 # 文件上传接口（支持知识库文档上传）
 @app.post("/api/upload")
 async def upload_file(
@@ -68,14 +84,14 @@ async def upload_file(
 
         logger.info(f"上传文件：{file.filename} - 知识库ID：{kb_id}")
         
-        original_name = file.filename or "file"
+        original_name: str = file.filename or "file"
         file_ext = os.path.splitext(original_name)[1] or ".bin"
         unique_filename = f"{uuid.uuid4().hex}{file_ext}"
         file_path = os.path.join(upload_dir, unique_filename)
         
         with open(file_path, "wb") as f:
             while chunk := await file.read(16 * 1024 * 1024):
-                f.write(chunk)
+                _ = f.write(chunk)
         
         file_size = os.path.getsize(file_path)
 
@@ -93,7 +109,7 @@ async def upload_file(
         doc_id = str(uuid.uuid4().hex)
         if kb_id and kb_id.strip():  # 确保kb_id不是空字符串
             logger.info(f"将文件关联到知识库：{kb_id}")
-            add_document(
+            doc = add_document(
                 doc_id=doc_id,
                 kb_id=kb_id,
                 name=original_name,
@@ -103,6 +119,9 @@ async def upload_file(
                 annotated_path=annotated_path,
                 md_path=md_path
             )
+            
+            # 添加向量化处理任务
+            background_tasks.add_task(process_document_for_vector_db, file_path, kb_id)
         
         if file_ext.lower() in ['.pdf', '.pdfa', '.pdfx']:
             return {
@@ -135,7 +154,7 @@ async def upload_file(
 
 # 文档删除接口（通过知识库ID和文档ID）
 @app.delete("/api/delete/{kb_id}/{doc_id}")
-async def delete_document_api(
+async def api_delete_document_api(
     kb_id: str,
     doc_id: str
 ):
@@ -163,7 +182,7 @@ async def delete_document_api(
 
 # 任务状态查询接口
 @app.get("/api/task/status/{task_id}")
-async def get_task_status(task_id: int) -> Dict[str, Any]:
+async def api_get_task_status(task_id: int) -> Dict[str, Any]:
     try:
         thread = next((t for t in threading.enumerate() if t.ident == task_id), None)
         if thread:
@@ -190,11 +209,11 @@ async def get_task_status(task_id: int) -> Dict[str, Any]:
 
 # 修改流式聊天接口，添加知识库参数
 @app.get("/api/chat/stream")
-async def stream_chat_response(session_id: str, message: str, collection_name: str = "default"):
+async def api_stream_chat_response(session_id: str, message: str, kb_id : str):
     """SSE流式响应端点，支持基于知识库的回答"""
     full_response = ""
     try:
-        logger.info(f"流式聊天：{session_id} - {message} - 知识库：{collection_name}")
+        logger.info(f"流式聊天：{session_id} - {message} - 知识库ID：{kb_id }")
         # 收集用户消息
         save_message(session_id, humanRole, message)
         
@@ -203,7 +222,7 @@ async def stream_chat_response(session_id: str, message: str, collection_name: s
             nonlocal full_response
             try:
                 # 使用RAG知识库增强的流式响应
-                async for chunk in generate_rag_response_stream_with_context(message, session_id, collection_name):
+                async for chunk in generate_rag_response_stream_with_context(message, session_id, kb_id ):
                     content = chunk.replace("data: ", "").strip()
                     full_response += content
                     yield chunk
@@ -254,18 +273,9 @@ class KnowledgeBaseCreateModel(BaseModel):
     name: str
     description: str = ""
 
-class DocumentUploadModel(BaseModel):
-    knowledge_base_id: str
-    name: str
-    saved_name: str
-    path: str
-    size: int
-    annotated_path: str = ""
-    md_path: str = ""
-
 # 会话标题更新接口
 @app.put("/api/session/update/{session_id}")
-async def update_session(session_id: str, session_data: SessionUpdateModel):
+async def api_update_session(session_id: str, session_data: SessionUpdateModel):
     """更新会话信息，如标题"""
     try:
         logger.info(f"更新会话: {session_id}, 标题: {session_data.title}")

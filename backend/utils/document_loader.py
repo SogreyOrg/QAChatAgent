@@ -56,8 +56,16 @@ def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overl
             chunk_overlap=chunk_overlap
         )
         
-        # 分割文档
+        # 分割文档并添加元数据(保留headers)
         final_splits = text_splitter.split_documents(md_header_splits)
+        for doc in final_splits:
+            headers = {k: v for k, v in doc.metadata.items() if k.startswith("Header")}
+            doc.metadata = {
+                "source": file_path,
+                "document_type": "markdown",
+                "headers": " | ".join(headers.values()) if headers else "",  # 添加标题信息
+                **headers  # 保留标题层级信息
+            }
         
         # 提取文本内容
         texts = [doc.page_content for doc in final_splits]
@@ -127,8 +135,7 @@ def document_loader_txt(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         logger.error(f"处理文本文件时出错: {str(e)}")
         return []
 
-def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200, 
-                       pages: Optional[List[int]] = None, password: Optional[str] = None) -> List[str]:
+def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200, password: Optional[str] = None, pages: Optional[List[int]] = None) -> List[str]:
     """
     加载并分割PDF文档
     
@@ -156,11 +163,8 @@ def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         else:
             loader = PyPDFLoader(file_path)
         
-        # 加载文档（可指定页面范围）
-        if pages:
-            docs = loader.load(pages)
-        else:
-            docs = loader.load()
+        # 加载文档 
+        docs = loader.load()
         
         logger.info(f"成功加载 {len(docs)} 页PDF文档")
         
@@ -168,7 +172,7 @@ def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", "。", "？", "！", "\.", "\?", "!", " ", ""]
+            separators=["\n\n", "\n", "。", "？", "！", ".", "?", "!", " ", ""]
         )
         
         # 分割文档

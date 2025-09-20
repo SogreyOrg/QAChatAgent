@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
-import { chatApi } from '@/services/api'
 
 // 生成会话ID的函数 - 使用时间戳毫秒
 function generateSessionId() {
@@ -75,7 +74,7 @@ export const useChatStore = defineStore('chat', () => {
   }
   
   // 发送消息
-  const sendMessage = async (content) => {
+  const sendMessage = async (content, kb_id) => {
     const chat = activeChat()
     if (!chat) return
     
@@ -110,7 +109,7 @@ export const useChatStore = defineStore('chat', () => {
       
       // 建立SSE连接获取流式响应
       const eventSource = new EventSource(
-        `/api/chat/stream?session_id=${chat.session_id}&message=${encodeURIComponent(content)}`
+        `/api/chat/stream?session_id=${chat.session_id}&message=${encodeURIComponent(content)}&kb_id=${kb_id}`
       )
       
       console.log('SSE连接已建立')

@@ -71,9 +71,11 @@
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
 import { useChatStore } from '@/stores/chat'
+import { useKnowledgeStore } from '@/stores/knowledge'
 import { ElMessage } from 'element-plus'
 
 const chatStore = useChatStore()
+const knowledgeStore = useKnowledgeStore()
 const inputMessage = ref('')
 const messagesRef = ref(null)
 const editingSessionId = ref(null)
@@ -94,6 +96,7 @@ const activeChatId = computed({
   }
 })
 const activeChat = computed(() => chatStore.activeChat())
+// const kb_id = computed(() => knowledgeStore.activeKnowledgeBaseId)
 
 const createNewChat = () => {
   chatStore.createNewChat()
@@ -235,7 +238,8 @@ const deleteChat = async (chatId) => {
 const sendMessage = () => {
   if (!inputMessage.value.trim()) return
 
-  chatStore.sendMessage(inputMessage.value)
+  console.log('发送消息:', inputMessage.value, knowledgeStore.activeKnowledgeBaseId)
+  chatStore.sendMessage(inputMessage.value, knowledgeStore.activeKnowledgeBaseId )
   inputMessage.value = ''
 
   nextTick(() => {
