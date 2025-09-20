@@ -1,11 +1,11 @@
 # Core dependencies
-langchain>=0.3.30
-langchain-core>=0.3.80
-langchain-community>=0.3.32
-langchain-text-splitters>=0.3.12
-langchain-unstructured>=0.1.2
-langchainhub>=0.1.22
-langchain-chroma>=0.2.8
+langchain>=0.1.0
+langchain-core>=0.1.0
+langchain-community>=0.3.0
+langchain-text-splitters>=0.3.0
+langchain-unstructured>=0.1.0
+langchainhub>=0.1.10
+langchain-chroma>=0.2.0
 
 # Database & Storage
 chromadb>=1.0.21
