@@ -111,25 +111,77 @@ export const useChatStore = defineStore('chat', () => {
       const eventSource = new EventSource(
         `/api/chat/stream?session_id=${chat.session_id}&message=${encodeURIComponent(content)}&kb_id=${kb_id}`
       )
-      
-      console.log('SSE连接已建立')
+
+      // 添加连接状态检查
+      eventSource.onopen = () => {
+        console.log('SSE连接已成功建立')
+        console.log('SSE readyState:', eventSource.readyState) // 应该为1 (OPEN)
+      }
       
       eventSource.onmessage = (event) => {
-        // console.log('收到SSE消息:', event.data)
+        // console.log('收到原始SSE消息:', event.data)
         
         if (event.data === '[DONE]') {
           console.log('SSE流结束')
           eventSource.close()
+
+          // 接收完成，打印完整的AI消息内容
+          console.log('AI消息内容:', aiMessage.content)
           return
         }
         
-        // 更新AI消息内容
-        aiMessage.content += event.data
+        // 解析JSON格式的消息
+        try {
+          // console.log('解析前的内容:', event.data)
+          const data = JSON.parse(event.data)          
+          // console.log('解析后的内容0:', data.content)
+          if (data && data.content) {
+            // console.log('解析后的内容:', data.content)
+            aiMessage.content += data.content
+          }
+        } catch (e) {
+          // 如果解析失败，尝试检查是否是多个JSON对象连接在一起
+          console.warn('初次解析失败，尝试处理可能的多JSON对象:', e)
+          
+          try {
+            // 尝试将字符串分割成多个JSON对象
+            const jsonPattern = /{[^}]+}/g
+            const jsonMatches = event.data.match(jsonPattern)
+            
+            if (jsonMatches && jsonMatches.length > 0) {
+              console.log('检测到多个JSON对象:', jsonMatches.length)
+              
+              // 解析每个JSON对象并提取content
+              jsonMatches.forEach(jsonStr => {
+                try {
+                  const jsonObj = JSON.parse(jsonStr)
+                  if (jsonObj && jsonObj.content) {
+                    aiMessage.content += jsonObj.content
+                  }
+                } catch (innerError) {
+                  console.error('解析子JSON对象失败:', innerError)
+                }
+              })
+            } else {
+              // 如果没有匹配到JSON对象，则作为普通文本处理
+              console.error('未检测到有效的JSON对象，作为普通文本处理')
+              aiMessage.content += event.data
+            }
+          } catch (outerError) {
+            // 如果所有尝试都失败，则作为普通文本处理
+            console.error('所有解析尝试均失败:', outerError)
+            aiMessage.content += event.data
+          }
+        }
+        
         chat.messages = [...chat.messages] // 触发响应式更新
       }
       
       eventSource.onerror = (err) => {
         console.error('SSE错误:', err)
+        // 添加重试逻辑或用户提示
+        aiMessage.content += "\n[连接中断，请刷新页面重试]"
+        chat.messages = [...chat.messages] // 触发响应式更新
         eventSource.close()
       }
     } catch (error) {

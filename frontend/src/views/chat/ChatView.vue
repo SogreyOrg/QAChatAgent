@@ -51,7 +51,7 @@
           </div>
           <div class="content">
             <div class="time">{{ formatTime(message.timestamp) }}</div>
-            <div class="text">{{ message.content }}</div>
+            <div class="text message-content">{{ message.content }}</div>
           </div>
         </div>
       </div>
@@ -382,6 +382,11 @@ onMounted(() => {
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-color);
   position: relative;
+}
+
+.message-content {
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* 添加AI消息的科技感装饰 */

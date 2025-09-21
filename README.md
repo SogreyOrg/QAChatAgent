@@ -22,10 +22,12 @@ QAChatAgent 是一个基于 AI 的智能问答系统，提供 PDF 文档处理�
 - 多会话切换与管理
 - 消息历史记录
 - 文件上传与处理状态显示
-- 流式对话响应
+- 流式对话响应 (支持JSON格式消息解析)
 - 自动滚动到最新消息
 - 科技感UI设计
 - 会话状态持久化
+- 健壮的消息传输处理 (支持换行符、特殊字符)
+- SSE连接可靠性保障 (自动重连、超时处理)
 
 ## 技术栈
 
@@ -42,6 +44,8 @@ QAChatAgent 是一个基于 AI 的智能问答系统，提供 PDF 文档处理�
 - Pinia
 - Element Plus
 - Axios
+- EventSource (SSE)
+- JSON序列化/反序列化
 
 ## 系统架构总览
 
@@ -173,6 +177,34 @@ QAChatAgent/
 ## 贡献指南
 
 欢迎提交 Pull Request。对于重大变更，请先开 Issue 讨论。
+
+## 最新优化
+
+### 消息传输优化 (2025/9/21)
+1. **后端改造**：
+   - 标准化JSON格式流式响应
+   - 确保特殊字符和换行符正确编码
+   - 示例代码：
+     ```python
+     yield f"data: {json.dumps({'content': content})}
+
+"
+     ```
+
+2. **前端增强**：
+   - 健壮的JSON解析 (支持多JSON对象连接)
+   - SSE连接可靠性 (状态检查、超时处理)
+   - 消息显示优化 (保留换行符)
+   - 示例代码：
+     ```javascript
+     const jsonPattern = /{[^}]+}/g
+     const jsonMatches = event.data.match(jsonPattern)
+     ```
+
+3. **调试技巧**：
+   - 分层日志系统 (连接/消息/错误)
+   - 浏览器Network面板监控
+   - Sources面板断点调试
 
 ## 许可证
 

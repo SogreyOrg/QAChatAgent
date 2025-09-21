@@ -2,6 +2,7 @@ from langchain_core.vectorstores.base import VectorStoreRetriever
 from langchain_core.messages.base import BaseMessage
 
 import asyncio
+import json
 import os
 from typing import List, Generator, Any, Optional
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage, BaseMessage
@@ -82,7 +83,7 @@ async def generate_rag_response_stream_with_context(
     """
     if not input_text or not session_id:
         logger.error("输入文本或会话ID为空")
-        yield f"data: [ERROR] 输入参数无效\n\n"
+        yield f"data: {json.dumps({'content': '[ERROR] 输入参数无效'})}\n\n"
         return
         
     try:
@@ -179,7 +180,7 @@ async def generate_rag_response_stream_with_context(
             content = chunk.content
             if content:
                 full_response += str(content)
-                yield f"data: {content}\n\n"
+                yield f"data: {json.dumps({'content': content})}\n\n"
                 await asyncio.sleep(STREAM_DELAY)  # 使用可配置的延迟时间
         
         # 打印完整响应内容用于调试
@@ -188,4 +189,4 @@ async def generate_rag_response_stream_with_context(
     except Exception as e:
         logger.error(f"生成RAG响应时出错: {str(e)}", exc_info=True)
         error_message = f"处理您的请求时发生错误: {str(e)}"
-        yield f"data: {error_message}\n\n"
+        yield f"data: {json.dumps({'content': error_message})}\n\n"

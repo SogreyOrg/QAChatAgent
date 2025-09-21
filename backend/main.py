@@ -7,6 +7,7 @@ from typing import AsyncGenerator, Optional, Dict, Any
 from pydantic import BaseModel
 import os
 import uuid
+import json
 import threading
 from dotenv import load_dotenv
 
@@ -25,7 +26,7 @@ from utils.database_knowledge import (
 )
 from utils.chroma_store import load_chroma_store_retriever, chroma_store_add_docs
 from utils.rag_chat import generate_rag_response_stream_with_context
-from utils._config import humanRole, aiRole
+from utils._config import APP_VERSION, humanRole, aiRole
 
 logger = logger_init("main")
 
@@ -35,7 +36,9 @@ load_dotenv()
 app = FastAPI(
     title="QAChatAgent API",
     description="API服务为前端提供PDF处理和知识库管理功能",
-    version="0.1.0"
+    version=APP_VERSION,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # 跨域配置
@@ -207,7 +210,7 @@ async def api_get_task_status(task_id: int) -> Dict[str, Any]:
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"查询任务状态失败: {str(e)}")
 
-# 修改流式聊天接口，添加知识库参数
+# 流式聊天接口，添加知识库参数
 @app.get("/api/chat/stream")
 async def api_stream_chat_response(session_id: str, message: str, kb_id : str):
     """SSE流式响应端点，支持基于知识库的回答"""
@@ -223,8 +226,15 @@ async def api_stream_chat_response(session_id: str, message: str, kb_id : str):
             try:
                 # 使用RAG知识库增强的流式响应
                 async for chunk in generate_rag_response_stream_with_context(message, session_id, kb_id ):
-                    content = chunk.replace("data: ", "").strip()
-                    full_response += content
+                    content_json = chunk.replace("data: ", "")
+                    try:
+                        content_data = json.loads(content_json)
+                        content = content_data.get('content', '')
+                        full_response += content
+                    except:
+                        # 处理非JSON格式的消息，如[DONE]等控制消息
+                        content = content_json
+                        full_response += content_json
                     yield chunk
 
                 if full_response:
