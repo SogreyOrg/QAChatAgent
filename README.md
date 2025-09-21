@@ -4,6 +4,8 @@
 
 QAChatAgent 是一个基于 AI 的智能问答系统，提供 PDF 文档处理和基于知识库的智能对话功能。系统分为前端和后端两部分，支持多会话管理和上下文感知的智能问答。最新版本增强了多会话管理功能和知识库检索能力。
 
+![](screenshot.png)
+
 ## 主要功能
 
 ### 后端功能
@@ -191,9 +193,7 @@ QAChatAgent/
    - 确保特殊字符和换行符正确编码
    - 示例代码：
      ```python
-     yield f"data: {json.dumps({'content': content})}
-
-"
+     yield f"data: {json.dumps({'content': content})}"
      ```
 
 2. **前端增强**：

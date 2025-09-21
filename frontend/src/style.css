@@ -114,3 +114,7 @@ table td {
   font-size: initial;
   font-weight: 700;
 }
+
+.text table td{
+  padding: 8px;
+}

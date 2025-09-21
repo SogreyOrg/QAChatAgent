@@ -74,7 +74,7 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { useChatStore } from '@/stores/chat'
 import { useKnowledgeStore } from '@/stores/knowledge'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 
 const chatStore = useChatStore()
 const knowledgeStore = useKnowledgeStore()
