@@ -1,4 +1,4 @@
-## [Unreleased]
+## [0.3.0] - 2025-09-21
 ### Added
 - 流式Markdown消息渲染功能
 - marked和DOMPurify依赖
