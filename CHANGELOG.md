@@ -1,3 +1,11 @@
+## [Unreleased]
+### Added
+- 流式Markdown消息渲染功能
+- marked和DOMPurify依赖
+
+### Changed
+- 改进消息内容解析和显示方式
+
 ## [0.2.0] - 2025-09-20
 ### Added
 - 新增会话标题编辑功能

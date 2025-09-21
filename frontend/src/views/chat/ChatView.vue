@@ -51,7 +51,7 @@
           </div>
           <div class="content">
             <div class="time">{{ formatTime(message.timestamp) }}</div>
-            <div class="text message-content">{{ message.content }}</div>
+            <div class="text message-content" v-html="renderMarkdown(message.content)"></div>
           </div>
         </div>
       </div>
@@ -70,6 +70,8 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { Plus } from '@element-plus/icons-vue'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 import { useChatStore } from '@/stores/chat'
 import { useKnowledgeStore } from '@/stores/knowledge'
 import { ElMessage } from 'element-plus'
@@ -251,6 +253,10 @@ const formatTime = (timestamp) => {
   return new Date(timestamp).toLocaleTimeString()
 }
 
+const renderMarkdown = (content) => {
+  return DOMPurify.sanitize(marked.parse(content))
+}
+
 const scrollToBottom = () => {
   if (messagesRef.value) {
     messagesRef.value.scrollTop = messagesRef.value.scrollHeight
@@ -374,7 +380,7 @@ onMounted(() => {
 }
 
 .text {
-  min-height: 44px;
+  /* min-height: 32px; */
   padding: 12px 16px;
   border-radius: 8px;
   background-color: var(--bg-medium);
@@ -385,7 +391,7 @@ onMounted(() => {
 }
 
 .message-content {
-  white-space: pre-wrap;
+  /* white-space: pre-wrap; */
   word-break: break-word;
 }
 
