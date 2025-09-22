@@ -1,13 +1,13 @@
 import os
 import logging
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Tuple, Dict, Any
 from .logger import logger_init
 
 logger = logger_init("document_loader")
 
-def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> List[str]:
+def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
-    加载并分割Markdown文档，按标题结构进行分割[6](@ref)
+    加载并分割Markdown文档，按标题结构进行分割
     
     参数:
         file_path: Markdown文件路径
@@ -15,7 +15,7 @@ def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overl
         chunk_overlap: 块之间的重叠字符数，默认200
         
     返回:
-        分割后的文本列表
+        (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     try:
         # 检查文件是否存在
@@ -58,27 +58,30 @@ def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overl
         
         # 分割文档并添加元数据(保留headers)
         final_splits = text_splitter.split_documents(md_header_splits)
+        texts = []
+        metadatas = []
+        
         for doc in final_splits:
             headers = {k: v for k, v in doc.metadata.items() if k.startswith("Header")}
-            doc.metadata = {
+            metadata = {
                 "source": file_path,
                 "document_type": "markdown",
                 "headers": " | ".join(headers.values()) if headers else "",  # 添加标题信息
+                "chunk_index": len(texts),  # 添加块索引
                 **headers  # 保留标题层级信息
             }
-        
-        # 提取文本内容
-        texts = [doc.page_content for doc in final_splits]
+            texts.append(doc.page_content)
+            metadatas.append(metadata)
         
         logger.info(f"Markdown文档已分割为 {len(texts)} 个文本块")
-        return texts
+        return texts, metadatas
         
     except Exception as e:
         logger.error(f"处理Markdown文档时出错: {str(e)}")
-        return []
+        return [], []
 
 def document_loader_txt(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200, 
-                       encoding: str = "utf-8", autodetect_encoding: bool = False) -> List[str]:
+                       encoding: str = "utf-8", autodetect_encoding: bool = False) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
     加载并分割文本文件
     
@@ -90,7 +93,7 @@ def document_loader_txt(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         autodetect_encoding: 是否自动检测编码，默认为False
         
     返回:
-        分割后的文本列表
+        (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     try:
         # 检查文件是否存在
@@ -119,23 +122,33 @@ def document_loader_txt(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         # 分割文档
         splits = text_splitter.split_documents(data)
         
-        # 提取文本内容
-        texts = [doc.page_content for doc in splits]
+        # 提取文本内容和元数据
+        texts = []
+        metadatas = []
+        
+        for doc in splits:
+            texts.append(doc.page_content)
+            metadatas.append({
+                "source": file_path,
+                "document_type": "text",
+                "chunk_index": len(texts) - 1,
+                "line_numbers": doc.metadata.get("line_numbers", "")
+            })
         
         logger.info(f"文本文件已分割为 {len(texts)} 个文本块")
-        return texts
+        return texts, metadatas
         
     except FileNotFoundError:
         logger.error(f"文件未找到: {file_path}")
-        return []
+        return [], []
     except UnicodeDecodeError:
         logger.error(f"编码错误，请尝试使用 autodetect_encoding=True 或指定正确的编码格式")
-        return []
+        return [], []
     except Exception as e:
         logger.error(f"处理文本文件时出错: {str(e)}")
-        return []
+        return [], []
 
-def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200, password: Optional[str] = None, pages: Optional[List[int]] = None) -> List[str]:
+def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200, password: Optional[str] = None, pages: Optional[List[int]] = None) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
     加载并分割PDF文档
     
@@ -147,7 +160,7 @@ def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         password: PDF密码，默认None
         
     返回:
-        分割后的文本列表
+        (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     try:
         # 检查文件是否存在
@@ -172,29 +185,39 @@ def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            separators=["\n\n", "\n", "。", "？", "！", ".", "?", "!", " ", ""]
+            separators=["\n\n", "\n", "。", "？", "！", ".", "?", "!"]
         )
         
         # 分割文档
         splits = text_splitter.split_documents(docs)
         
-        # 提取文本内容
-        texts = [doc.page_content for doc in splits]
+        # 提取文本内容和元数据
+        texts = []
+        metadatas = []
+        
+        for doc in splits:
+            texts.append(doc.page_content)
+            metadatas.append({
+                "source": file_path,
+                "document_type": "pdf",
+                "page": doc.metadata.get("page", 0),
+                "chunk_index": len(texts) - 1
+            })
         
         logger.info(f"PDF文档已分割为 {len(texts)} 个文本块")
-        return texts
+        return texts, metadatas
         
     except FileNotFoundError:
         logger.error(f"文件未找到: {file_path}")
-        return []
+        return [], []
     except Exception as e:
         logger.error(f"处理PDF文档时出错: {str(e)}")
-        return []
+        return [], []
 
 def document_loader_web(url: Union[str, List[str]], chunk_size: int = 1000, 
-                        chunk_overlap: int = 200, verify_ssl: bool = True) -> List[str]:
+                        chunk_overlap: int = 200, verify_ssl: bool = True) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
-    从网页URL加载并分割内容[1,2,3](@ref)
+    从网页URL加载并分割内容
     
     参数:
         url: 网页URL地址或URL列表
@@ -204,7 +227,7 @@ def document_loader_web(url: Union[str, List[str]], chunk_size: int = 1000,
         verify_ssl: SSL验证，默认True
         
     返回:
-        分割后的文本列表
+        (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     try:
         from langchain_community.document_loaders import WebBaseLoader
@@ -237,20 +260,31 @@ def document_loader_web(url: Union[str, List[str]], chunk_size: int = 1000,
         # 分割文档
         splits = text_splitter.split_documents(docs)
         
-        # 提取文本内容
-        texts = [doc.page_content for doc in splits]
+        # 提取文本内容和元数据
+        texts = []
+        metadatas = []
+        
+        for doc in splits:
+            texts.append(doc.page_content)
+            source_url = url if isinstance(url, str) else doc.metadata.get("source", "unknown")
+            metadatas.append({
+                "source": source_url,
+                "document_type": "web",
+                "title": doc.metadata.get("title", ""),
+                "chunk_index": len(texts) - 1
+            })
         
         logger.info(f"网页内容已分割为 {len(texts)} 个文本块")
-        return texts
+        return texts, metadatas
         
     except Exception as e:
         logger.error(f"加载网页内容时出错: {str(e)}")
-        return []
+        return [], []
 
 def document_loader_html(html_file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200,
-                         chunking_strategy: str = "by_title", max_characters: int = 1000) -> List[str]:
+                         chunking_strategy: str = "by_title", max_characters: int = 1000) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
-    加载并分割本地HTML文件[6](@ref)
+    加载并分割本地HTML文件
     
     参数:
         html_file_path: HTML文件路径
@@ -260,7 +294,7 @@ def document_loader_html(html_file_path: str, chunk_size: int = 1000, chunk_over
         max_characters: 最大分块字符数，默认1000
         
     返回:
-        分割后的文本列表
+        (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     try:
         # 检查文件是否存在
@@ -291,20 +325,30 @@ def document_loader_html(html_file_path: str, chunk_size: int = 1000, chunk_over
         # 分割文档
         splits = text_splitter.split_documents(data)
         
-        # 提取文本内容
-        texts = [doc.page_content for doc in splits]
+        # 提取文本内容和元数据
+        texts = []
+        metadatas = []
+        
+        for doc in splits:
+            texts.append(doc.page_content)
+            metadatas.append({
+                "source": html_file_path,
+                "document_type": "html",
+                "title": doc.metadata.get("title", ""),
+                "chunk_index": len(texts) - 1
+            })
         
         logger.info(f"HTML文件已分割为 {len(texts)} 个文本块")
-        return texts
+        return texts, metadatas
         
     except FileNotFoundError:
         logger.error(f"文件未找到: {html_file_path}")
-        return []
+        return [], []
     except Exception as e:
         logger.error(f"处理HTML文件时出错: {str(e)}")
-        return []
+        return [], []
 
-def load_document(file_path: str, file_type: str = "auto", **kwargs) -> List[str]:
+def load_document(file_path: str, file_type: str = "auto", **kwargs) -> Tuple[List[str], List[Dict[str, Any]]]:
     """
     统一文档加载接口，根据文件类型自动选择加载器
     
@@ -314,7 +358,7 @@ def load_document(file_path: str, file_type: str = "auto", **kwargs) -> List[str
         **kwargs: 传递给具体加载器的参数
         
     返回:
-        分割后的文本列表
+        (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     # 自动检测文件类型
     if file_type == "auto":
@@ -346,36 +390,42 @@ def load_document(file_path: str, file_type: str = "auto", **kwargs) -> List[str
         return document_loader_html(file_path, **kwargs)
     else:
         print(f"不支持的文件类型: {file_type}")
-        return []
+        return [], []
 
 # 使用示例
 if __name__ == "__main__":
     # 示例1: 加载Markdown文档
-    md_texts = document_loader_markdown("example.md", chunk_size=800)
-    for i, text in enumerate(md_texts):
+    md_texts, md_metadatas = document_loader_markdown("example.md", chunk_size=800)
+    for i, (text, metadata) in enumerate(zip(md_texts, md_metadatas)):
         print(f"Markdown块 {i+1}: {text[:100]}...")
+        print(f"元数据: {metadata}")
     
     # 示例2: 加载文本文件
-    txt_texts = document_loader_txt("example.txt", chunk_size=1200, autodetect_encoding=True)
-    for i, text in enumerate(txt_texts):
+    txt_texts, txt_metadatas = document_loader_txt("example.txt", chunk_size=1200, autodetect_encoding=True)
+    for i, (text, metadata) in enumerate(zip(txt_texts, txt_metadatas)):
         print(f"文本块 {i+1}: {text[:100]}...")
+        print(f"元数据: {metadata}")
     
     # 示例3: 加载PDF文档
-    pdf_texts = document_loader_pdf("example.pdf", pages=[0, 1, 2], chunk_size=1500)
-    for i, text in enumerate(pdf_texts):
+    pdf_texts, pdf_metadatas = document_loader_pdf("example.pdf", pages=[0, 1, 2], chunk_size=1500)
+    for i, (text, metadata) in enumerate(zip(pdf_texts, pdf_metadatas)):
         print(f"PDF块 {i+1}: {text[:100]}...")
+        print(f"元数据: {metadata}")
     
     # 示例4: 加载网页内容
-    web_texts = document_loader_web("https://example.com/blog/post")
-    for i, text in enumerate(web_texts):
+    web_texts, web_metadatas = document_loader_web("https://example.com/blog/post")
+    for i, (text, metadata) in enumerate(zip(web_texts, web_metadatas)):
         print(f"网页块 {i+1}: {text[:100]}...")
+        print(f"元数据: {metadata}")
     
     # 示例5: 加载HTML文件
-    html_texts = document_loader_html("local_page.html", chunk_size=1500)
-    for i, text in enumerate(html_texts):
+    html_texts, html_metadatas = document_loader_html("local_page.html", chunk_size=1500)
+    for i, (text, metadata) in enumerate(zip(html_texts, html_metadatas)):
         print(f"HTML块 {i+1}: {text[:100]}...")
+        print(f"元数据: {metadata}")
     
     # 示例6: 使用统一接口
-    texts = load_document("example.md")
-    for i, text in enumerate(texts):
+    texts, metadatas = load_document("example.md")
+    for i, (text, metadata) in enumerate(zip(texts, metadatas)):
         print(f"文档块 {i+1}: {text[:100]}...")
+        print(f"元数据: {metadata}")

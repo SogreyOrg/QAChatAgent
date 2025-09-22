@@ -17,10 +17,11 @@ logger = logger_init("rag_chat")
 
 # 从环境变量或配置文件中读取配置
 MODEL_NAME = os.getenv("LLM_MODEL_NAME", "glm-4")
-TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.7"))
-MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "2048"))
-STREAM_DELAY = float(os.getenv("STREAM_DELAY", "0.01"))
-MAX_HISTORY_MESSAGES = int(os.getenv("MAX_HISTORY_MESSAGES", "10"))
+TEMPERATURE: float = float(os.getenv("LLM_TEMPERATURE", 0.7))
+MAX_TOKENS: int = int(os.getenv("LLM_MAX_TOKENS", 2048))
+TOP_P: float = float(os.getenv("LLM_TOP_P", 0.8))
+STREAM_DELAY: float = float(os.getenv("STREAM_DELAY", 0.01))
+MAX_HISTORY_MESSAGES: int = int(os.getenv("MAX_HISTORY_MESSAGES", 10))
 
 def get_chat() -> ChatZhipuAI:
     """
@@ -33,7 +34,8 @@ def get_chat() -> ChatZhipuAI:
         model=MODEL_NAME,
         streaming=True,
         temperature=TEMPERATURE,
-        max_tokens=MAX_TOKENS
+        max_tokens=MAX_TOKENS,
+        top_p=TOP_P,
     )
     return chat
 
@@ -81,6 +83,9 @@ async def generate_rag_response_stream_with_context(
     Yields:
         str: 流式响应文本块
     """
+    import time
+    start_time = time.time()
+    step_times = {}
     if not input_text or not session_id:
         logger.error("输入文本或会话ID为空")
         yield f"data: {json.dumps({'content': '[ERROR] 输入参数无效'})}\n\n"
@@ -89,13 +94,30 @@ async def generate_rag_response_stream_with_context(
     try:
         chat = get_chat()
         logger.info(f"处理会话 {session_id} 的请求，知识库: {kb_id}")
+        
+        # 计时：初始化聊天模型
+        t1 = time.time()
+        step_times['初始化聊天模型'] = t1 - start_time
+        logger.info(f"性能分析 - 初始化聊天模型耗时: {step_times['初始化聊天模型']:.3f}秒")
             
         # 转换为langchain消息
+        history_start = time.time()
         langchain_history: list[BaseMessage] = convert_db_messages_to_langchain_messages(session_id=session_id)
         logger.info(f"检索到{len(langchain_history)}条历史消息。")
+        
+        # 计时：获取历史消息
+        t2 = time.time()
+        step_times['获取历史消息'] = t2 - history_start
+        logger.info(f"性能分析 - 获取历史消息耗时: {step_times['获取历史消息']:.3f}秒")
 
         # 加载知识库检索器
+        retriever_start = time.time()
         retriever: VectorStoreRetriever = load_chroma_store_retriever(kb_id)
+        
+        # 计时：加载知识库检索器
+        t3 = time.time()
+        step_times['加载知识库检索器'] = t3 - retriever_start
+        logger.info(f"性能分析 - 加载知识库检索器耗时: {step_times['加载知识库检索器']:.3f}秒")
         
         # 创建上下文感知的问题（中文版本）
         contextualize_q_system_prompt = """根据聊天历史和最新的用户问题，
@@ -106,6 +128,7 @@ async def generate_rag_response_stream_with_context(
         不要添加任何解释、评论或额外内容。"""
         
         # 使用上下文感知检索器
+        question_recon_start = time.time()
         standalone_question = await chat.ainvoke(
             [
                 {"role": "system", "content": contextualize_q_system_prompt},
@@ -113,6 +136,11 @@ async def generate_rag_response_stream_with_context(
                 {"role": humanRole, "content": input_text}
             ]
         )
+        
+        # 计时：问题重构
+        t4 = time.time()
+        step_times['问题重构'] = t4 - question_recon_start
+        logger.info(f"性能分析 - 问题重构耗时: {step_times['问题重构']:.3f}秒")
         
         # 检查重构后的问题是否有效
         reconstructed_question = standalone_question.content.strip() if isinstance(standalone_question.content, str) else input_text
@@ -125,7 +153,14 @@ async def generate_rag_response_stream_with_context(
         # # 检索相关文档
         # docs = retriever.invoke(reconstructed_question)
         # 检索时会返回带 score 的文档
+        retrieval_start = time.time()
         docs = retriever.invoke(reconstructed_question)
+        
+        # 计时：文档检索
+        t5 = time.time()
+        step_times['文档检索'] = t5 - retrieval_start
+        logger.info(f"性能分析 - 文档检索耗时: {step_times['文档检索']:.3f}秒")
+        
         logger.info(f"检索到 {len(docs)} 个相关文档")
 
         for i, doc in enumerate(docs):
@@ -175,16 +210,39 @@ async def generate_rag_response_stream_with_context(
         
         # 流式生成响应
         logger.info("开始生成流式响应")
+        response_start = time.time()
+        step_times['准备响应'] = response_start - start_time
+        logger.info(f"性能分析 - 准备响应总耗时: {step_times['准备响应']:.3f}秒")
+        
         full_response = ""
+        first_token_received = False
+        first_token_time = None
+        
         async for chunk in chat.astream(final_messages):
             content = chunk.content
             if content:
+                if not first_token_received:
+                    first_token_time = time.time()
+                    step_times['首个token响应'] = first_token_time - response_start
+                    logger.info(f"性能分析 - 首个token响应耗时: {step_times['首个token响应']:.3f}秒")
+                    first_token_received = True
+                
                 full_response += str(content)
                 yield f"data: {json.dumps({'content': content})}\n\n"
                 await asyncio.sleep(STREAM_DELAY)  # 使用可配置的延迟时间
         
-        # 打印完整响应内容用于调试
+        # 计时：完成响应
+        end_time = time.time()
+        step_times['完整响应生成'] = end_time - response_start
+        step_times['总耗时'] = end_time - start_time
+        
+        # 打印完整响应内容和性能分析
         logger.info(f"完整响应内容:\n{full_response}")
+        logger.info("========== 性能分析总结 ==========")
+        for step, duration in step_times.items():
+            logger.info(f"{step}: {duration:.3f}秒")
+        logger.info(f"总耗时: {step_times['总耗时']:.3f}秒")
+        logger.info("=================================")
 
     except Exception as e:
         logger.error(f"生成RAG响应时出错: {str(e)}", exc_info=True)

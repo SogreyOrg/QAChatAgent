@@ -1,4 +1,4 @@
-# QAChatAgent - 智能问答聊天代理
+# QAChatAgent - 智能问答系统
 
 ## 项目概述
 

@@ -125,7 +125,7 @@ def plot_pdf_with_boxes(pdf_page, segments):
             legend_handles.append(
                 patches.Patch(color=category_to_color[category], label=category)
             )
-    ax.axis("off")
+    ax.axis("on")
     ax.legend(handles=legend_handles, loc="upper right")
     plt.tight_layout()
     plt.show()
