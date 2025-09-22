@@ -12,7 +12,7 @@ function Start-Backend {
     Write-Host "启动后端服务..."
     cd backend
     $env:PYTHONPATH = "$projectRoot"
-    python main.py
+    uvicorn main:app --reload --host 0.0.0.0 --port 8000
 }
 
 # 启动前端服务

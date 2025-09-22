@@ -1,3 +1,13 @@
+## [0.3.1] - 2025-09-22
+### Fixed
+- 修复了 `chroma_store.py` 中的值解包错误，解决了 `ValueError: too many values to unpack (expected 2)` 问题
+- 修改了 `start.ps1` 脚本，使用 uvicorn 直接启动服务，提高启动稳定性
+- 修复了 `main.py` 中的 uvicorn 启动配置，解决了 `WARNING: You must pass the application as an import string` 错误
+
+### Enhanced
+- 增强了 `document_loader.py` 中的文档加载函数，添加元数据返回功能
+- 改进了文档处理流程，使向量数据库能够存储更丰富的文档元数据信息
+
 ## [0.3.0] - 2025-09-21
 ### Added
 - 流式Markdown消息渲染功能
