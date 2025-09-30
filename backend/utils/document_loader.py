@@ -3,6 +3,10 @@ import logging
 from typing import List, Optional, Union, Tuple, Dict, Any
 from .logger import logger_init
 
+from langchain_community.document_loaders import WebBaseLoader,UnstructuredMarkdownLoader,TextLoader,PyPDFLoader,UnstructuredHTMLLoader
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+import bs4
+
 logger = logger_init("document_loader")
 
 def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overlap: int = 200) -> Tuple[List[str], List[Dict[str, Any]]]:
@@ -21,9 +25,6 @@ def document_loader_markdown(file_path: str, chunk_size: int = 1000, chunk_overl
         # 检查文件是否存在
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"Markdown文件不存在: {file_path}")
-        
-        from langchain_community.document_loaders import UnstructuredMarkdownLoader
-        from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 
         # 加载Markdown文档
         loader = UnstructuredMarkdownLoader(file_path)
@@ -99,9 +100,6 @@ def document_loader_txt(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         # 检查文件是否存在
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"文本文件不存在: {file_path}")
-        
-        from langchain_community.document_loaders import TextLoader
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
 
         # 初始化TextLoader
         loader = TextLoader(
@@ -166,9 +164,6 @@ def document_loader_pdf(file_path: str, chunk_size: int = 1000, chunk_overlap: i
         # 检查文件是否存在
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"PDF文件不存在: {file_path}")
-        
-        from langchain_community.document_loaders import PyPDFLoader
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
 
         # 初始化PDF加载器
         if password:
@@ -230,10 +225,6 @@ def document_loader_web(url: Union[str, List[str]], chunk_size: int = 1000,
         (texts, metadatas): 分割后的文本列表和对应的元数据列表
     """
     try:
-        from langchain_community.document_loaders import WebBaseLoader
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
-        import bs4
-
         # 初始化WebBaseLoader
         loader = WebBaseLoader(
             web_paths=url if isinstance(url, list) else [url],
@@ -300,9 +291,6 @@ def document_loader_html(html_file_path: str, chunk_size: int = 1000, chunk_over
         # 检查文件是否存在
         if not os.path.exists(html_file_path):
             raise FileNotFoundError(f"HTML文件不存在: {html_file_path}")
-        
-        from langchain_community.document_loaders import UnstructuredHTMLLoader
-        from langchain_text_splitters import RecursiveCharacterTextSplitter
 
         # 初始化UnstructuredHTMLLoader
         loader = UnstructuredHTMLLoader(
